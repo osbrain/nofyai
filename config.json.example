@@ -72,6 +72,19 @@
     "altcoin_leverage": 5
   },
 
+  // Telegram Notification Configuration
+  // Get bot_token from @BotFather on Telegram
+  // Get chat_id by messaging your bot and visiting: https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+  "telegram": {
+    "enabled": false,
+    "bot_token": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+    "chat_id": "123456789",
+    "notify_on_trade": true,
+    "notify_on_error": true,
+    "notify_on_daily_summary": true,
+    "notify_on_performance_warning": true
+  },
+
   // Coin Pool Configuration
   "use_default_coins": true,
   "default_coins": [

@@ -1,19 +1,50 @@
 'use client';
 
+import { useState } from 'react';
 import { useConfig } from '@/hooks/useTrading';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { useTranslations } from '@/lib/i18n-context';
 
 export function ConfigViewer() {
+  const t = useTranslations();
   const { data: config, error, isLoading } = useConfig();
+  const [telegramTesting, setTelegramTesting] = useState(false);
+  const [telegramTestResult, setTelegramTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const testTelegramNotification = async () => {
+    setTelegramTesting(true);
+    setTelegramTestResult(null);
+
+    try {
+      const response = await fetch('/api/telegram/test', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTelegramTestResult({ success: true, message: data.message });
+      } else {
+        setTelegramTestResult({ success: false, message: data.error || t.config.testFailed });
+      }
+    } catch (error) {
+      setTelegramTestResult({
+        success: false,
+        message: error instanceof Error ? error.message : t.config.testFailed,
+      });
+    } finally {
+      setTelegramTesting(false);
+    }
+  };
 
   if (error) {
     return (
       <Card className="p-8">
         <div className="text-center text-danger">
           <div className="text-4xl mb-4">⚠️</div>
-          <div className="font-semibold mb-2">Failed to load configuration</div>
+          <div className="font-semibold mb-2">{t.config.failedToLoadConfig}</div>
           <div className="text-sm text-text-secondary">{error.message}</div>
         </div>
       </Card>
@@ -37,7 +68,7 @@ export function ConfigViewer() {
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <span>⚙️</span>
-            <span>System Configuration</span>
+            <span>{t.config.systemConfiguration}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -45,7 +76,7 @@ export function ConfigViewer() {
             {/* Leverage Configuration */}
             <div className="p-4 bg-background-secondary rounded-lg">
               <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
-                BTC/ETH Leverage
+                {t.config.btcEthLeverage}
               </div>
               <div className="text-2xl font-bold text-primary">
                 {config.leverage.btc_eth_leverage}x
@@ -54,7 +85,7 @@ export function ConfigViewer() {
 
             <div className="p-4 bg-background-secondary rounded-lg">
               <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
-                Altcoin Leverage
+                {t.config.altcoinLeverage}
               </div>
               <div className="text-2xl font-bold text-primary">
                 {config.leverage.altcoin_leverage}x
@@ -64,7 +95,7 @@ export function ConfigViewer() {
             {/* Risk Management */}
             <div className="p-4 bg-background-secondary rounded-lg">
               <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
-                Max Daily Loss
+                {t.config.maxDailyLoss}
               </div>
               <div className="text-2xl font-bold text-danger">
                 {config.max_daily_loss}%
@@ -73,7 +104,7 @@ export function ConfigViewer() {
 
             <div className="p-4 bg-background-secondary rounded-lg">
               <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
-                Max Drawdown
+                {t.config.maxDrawdown}
               </div>
               <div className="text-2xl font-bold text-danger">
                 {config.max_drawdown}%
@@ -82,7 +113,7 @@ export function ConfigViewer() {
 
             <div className="p-4 bg-background-secondary rounded-lg">
               <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
-                Stop Trading Duration
+                {t.config.stopTradingDuration}
               </div>
               <div className="text-2xl font-bold text-warning">
                 {config.stop_trading_minutes} min
@@ -92,7 +123,7 @@ export function ConfigViewer() {
             {/* Server Configuration */}
             <div className="p-4 bg-background-secondary rounded-lg">
               <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
-                API Server Port
+                {t.config.apiServerPort}
               </div>
               <div className="text-2xl font-bold text-text-primary">
                 {config.api_server_port}
@@ -102,12 +133,220 @@ export function ConfigViewer() {
         </CardContent>
       </Card>
 
-      {/* Coin Pool Configuration */}
+      {/* Telegram Notification Configuration */}
+      <Card className="p-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <span>📱</span>
+            <span>{t.config.telegramNotifications}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {config.telegram ? (
+            <div className="space-y-4">
+              {/* Enable Status */}
+              <div className="flex items-center justify-between p-4 bg-background-secondary rounded-lg">
+                <div>
+                  <div className="text-sm font-semibold text-text-primary mb-1">
+                    {t.config.notificationStatus}
+                  </div>
+                  <div className="text-xs text-text-tertiary">
+                    {config.telegram.enabled ? t.config.telegramActive : t.config.telegramDisabled}
+                  </div>
+                </div>
+                <Badge variant={config.telegram.enabled ? 'success' : 'secondary'}>
+                  {config.telegram.enabled ? t.config.enabled : t.config.disabled}
+                </Badge>
+              </div>
+
+              {config.telegram.enabled && (
+                <>
+                  {/* Bot Configuration */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-background-secondary rounded-lg">
+                      <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
+                        {t.config.botToken}
+                      </div>
+                      <div className="text-sm font-mono text-text-secondary">
+                        {config.telegram.bot_token.substring(0, 10)}...{config.telegram.bot_token.slice(-4)}
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-background-secondary rounded-lg">
+                      <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
+                        {t.config.chatId}
+                      </div>
+                      <div className="text-sm font-mono text-text-secondary">
+                        {config.telegram.chat_id}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notification Types */}
+                  <div className="p-4 bg-background-secondary rounded-lg">
+                    <div className="text-sm font-semibold text-text-primary mb-3">
+                      {t.config.notificationTypes}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-text-secondary flex items-center gap-2">
+                          <span>📊</span>
+                          <span>{t.config.tradeNotifications}</span>
+                        </div>
+                        <Badge variant={config.telegram.notify_on_trade ? 'success' : 'secondary'} className="text-xs">
+                          {config.telegram.notify_on_trade ? t.config.on : t.config.off}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-text-secondary flex items-center gap-2">
+                          <span>🚨</span>
+                          <span>{t.config.errorNotifications}</span>
+                        </div>
+                        <Badge variant={config.telegram.notify_on_error ? 'success' : 'secondary'} className="text-xs">
+                          {config.telegram.notify_on_error ? t.config.on : t.config.off}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-text-secondary flex items-center gap-2">
+                          <span>📈</span>
+                          <span>{t.config.dailySummary}</span>
+                        </div>
+                        <Badge variant={config.telegram.notify_on_daily_summary ? 'success' : 'secondary'} className="text-xs">
+                          {config.telegram.notify_on_daily_summary ? t.config.on : t.config.off}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-text-secondary flex items-center gap-2">
+                          <span>⚠️</span>
+                          <span>{t.config.performanceWarnings}</span>
+                        </div>
+                        <Badge variant={config.telegram.notify_on_performance_warning ? 'success' : 'secondary'} className="text-xs">
+                          {config.telegram.notify_on_performance_warning ? t.config.on : t.config.off}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Test Button */}
+                  <div className="flex flex-col items-center gap-3 p-4 bg-gradient-to-r from-primary/10 to-accent-purple/10 border border-primary/30 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-sm font-semibold text-text-primary mb-1">
+                        {t.config.testYourConfiguration}
+                      </div>
+                      <div className="text-xs text-text-secondary">
+                        {t.config.sendTestMessage}
+                      </div>
+                    </div>
+                    <button
+                      onClick={testTelegramNotification}
+                      disabled={telegramTesting}
+                      className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {telegramTesting ? (
+                        <>
+                          <span className="animate-spin">⏳</span>
+                          <span>{t.config.sending}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>📱</span>
+                          <span>{t.config.sendTestNotification}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Test Result */}
+                    {telegramTestResult && (
+                      <div className={`w-full p-3 rounded-lg ${telegramTestResult.success ? 'bg-success/10 border border-success/30' : 'bg-danger/10 border border-danger/30'}`}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{telegramTestResult.success ? '✅' : '❌'}</span>
+                          <div className="text-xs">
+                            <div className={`font-semibold ${telegramTestResult.success ? 'text-success' : 'text-danger'}`}>
+                              {telegramTestResult.success ? t.config.testSuccess : t.config.testFailed}
+                            </div>
+                            <div className="text-text-secondary">{telegramTestResult.message}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Setup Guide Link */}
+                  <div className="p-4 bg-background-secondary rounded-lg border border-border">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">📖</span>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-text-primary mb-1">
+                          {t.config.needHelpSetting}
+                        </div>
+                        <div className="text-xs text-text-tertiary">
+                          {t.config.checkoutTelegramGuide}
+                        </div>
+                      </div>
+                      <a
+                        href="/TELEGRAM_SETUP.md"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors font-semibold text-sm"
+                      >
+                        {t.config.viewGuide}
+                      </a>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {!config.telegram.enabled && (
+                <div className="p-6 text-center">
+                  <div className="text-4xl mb-3 opacity-30">📱</div>
+                  <div className="text-sm font-semibold text-text-primary mb-2">
+                    {t.config.telegramNotificationsDisabled}
+                  </div>
+                  <div className="text-xs text-text-tertiary mb-4">
+                    {t.config.enableTelegramInConfig}
+                  </div>
+                  <a
+                    href="/TELEGRAM_SETUP.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
+                  >
+                    <span>📖</span>
+                    <span>{t.config.setupGuide}</span>
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <div className="text-4xl mb-3 opacity-30">📱</div>
+              <div className="text-sm font-semibold text-text-primary mb-2">
+                {t.config.telegramNotConfigured}
+              </div>
+              <div className="text-xs text-text-tertiary mb-4">
+                {t.config.addTelegramToConfig}
+              </div>
+              <a
+                href="/TELEGRAM_SETUP.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
+              >
+                <span>📖</span>
+                <span>{t.config.setupGuide}</span>
+              </a>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       <Card className="p-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <span>🪙</span>
-            <span>Coin Pool Configuration</span>
+            <span>{t.config.coinPoolConfiguration}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -115,21 +354,21 @@ export function ConfigViewer() {
             <div className="flex items-center justify-between p-4 bg-background-secondary rounded-lg">
               <div>
                 <div className="text-sm font-semibold text-text-primary mb-1">
-                  Use Default Coins
+                  {t.config.useDefaultCoins}
                 </div>
                 <div className="text-xs text-text-tertiary">
-                  Use predefined coin list instead of dynamic pool
+                  {t.config.useDefaultCoinsDesc}
                 </div>
               </div>
               <Badge variant={config.use_default_coins ? 'success' : 'secondary'}>
-                {config.use_default_coins ? 'Enabled' : 'Disabled'}
+                {config.use_default_coins ? t.config.enabled : t.config.disabled}
               </Badge>
             </div>
 
             {config.use_default_coins && config.default_coins.length > 0 && (
               <div className="p-4 bg-background-secondary rounded-lg">
                 <div className="text-sm font-semibold text-text-primary mb-3">
-                  Default Coin List ({config.default_coins.length} coins)
+                  {t.config.defaultCoinList} ({config.default_coins.length} {t.config.coins})
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {config.default_coins.map((coin, i) => (
@@ -144,7 +383,7 @@ export function ConfigViewer() {
             {config.coin_pool_api_url && (
               <div className="p-4 bg-background-secondary rounded-lg">
                 <div className="text-sm font-semibold text-text-primary mb-1">
-                  AI500 Coin Pool API
+                  {t.config.ai500CoinPoolApi}
                 </div>
                 <div className="text-xs font-mono text-text-tertiary break-all">
                   {config.coin_pool_api_url}
@@ -155,7 +394,7 @@ export function ConfigViewer() {
             {config.oi_top_api_url && (
               <div className="p-4 bg-background-secondary rounded-lg">
                 <div className="text-sm font-semibold text-text-primary mb-1">
-                  OI Top API
+                  {t.config.oiTopApi}
                 </div>
                 <div className="text-xs font-mono text-text-tertiary break-all">
                   {config.oi_top_api_url}
@@ -171,7 +410,7 @@ export function ConfigViewer() {
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <span>🤖</span>
-            <span>Trader Configurations ({config.traders.length})</span>
+            <span>{t.config.traderConfigurations} ({config.traders.length})</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -191,7 +430,7 @@ export function ConfigViewer() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={trader.enabled ? 'success' : 'secondary'}>
-                      {trader.enabled ? 'Enabled' : 'Disabled'}
+                      {trader.enabled ? t.config.enabled : t.config.disabled}
                     </Badge>
                     <Badge variant="primary">
                       {trader.ai_model.toUpperCase()}
@@ -205,14 +444,14 @@ export function ConfigViewer() {
                 {/* Trader Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <div className="text-xs text-text-tertiary mb-1">Initial Balance</div>
+                    <div className="text-xs text-text-tertiary mb-1">{t.config.initialBalance}</div>
                     <div className="text-lg font-semibold text-text-primary">
                       ${trader.initial_balance.toLocaleString()}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-xs text-text-tertiary mb-1">Scan Interval</div>
+                    <div className="text-xs text-text-tertiary mb-1">{t.config.scanInterval}</div>
                     <div className="text-lg font-semibold text-text-primary">
                       {trader.scan_interval_minutes} min
                     </div>
@@ -222,7 +461,7 @@ export function ConfigViewer() {
                   {trader.exchange === 'binance' && 'binance_api_key_masked' in trader && (
                     <>
                       <div className="col-span-full">
-                        <div className="text-xs text-text-tertiary mb-1">Binance API Key</div>
+                        <div className="text-xs text-text-tertiary mb-1">{t.config.binanceApiKey}</div>
                         <div className="text-sm font-mono text-text-secondary">
                           {trader.binance_api_key_masked}
                         </div>
@@ -233,15 +472,15 @@ export function ConfigViewer() {
                   {trader.exchange === 'hyperliquid' && 'hyperliquid_wallet_addr' in trader && (
                     <>
                       <div className="col-span-full">
-                        <div className="text-xs text-text-tertiary mb-1">Hyperliquid Wallet</div>
+                        <div className="text-xs text-text-tertiary mb-1">{t.config.hyperliquidWallet}</div>
                         <div className="text-sm font-mono text-text-secondary">
                           {trader.hyperliquid_wallet_addr}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-text-tertiary mb-1">Testnet</div>
+                        <div className="text-xs text-text-tertiary mb-1">{t.config.testnet}</div>
                         <Badge variant={'hyperliquid_testnet' in trader && trader.hyperliquid_testnet ? 'warning' : 'success'}>
-                          {'hyperliquid_testnet' in trader && trader.hyperliquid_testnet ? 'Yes' : 'No'}
+                          {'hyperliquid_testnet' in trader && trader.hyperliquid_testnet ? t.config.yes : t.config.no}
                         </Badge>
                       </div>
                     </>
@@ -250,13 +489,13 @@ export function ConfigViewer() {
                   {trader.exchange === 'aster' && 'aster_user' in trader && (
                     <>
                       <div className="col-span-full">
-                        <div className="text-xs text-text-tertiary mb-1">Aster User (Main Wallet)</div>
+                        <div className="text-xs text-text-tertiary mb-1">{t.config.asterUser}</div>
                         <div className="text-sm font-mono text-text-secondary">
                           {trader.aster_user}
                         </div>
                       </div>
                       <div className="col-span-full">
-                        <div className="text-xs text-text-tertiary mb-1">Aster Signer (API Wallet)</div>
+                        <div className="text-xs text-text-tertiary mb-1">{t.config.asterSigner}</div>
                         <div className="text-sm font-mono text-text-secondary">
                           {trader.aster_signer}
                         </div>
@@ -268,14 +507,14 @@ export function ConfigViewer() {
                   {trader.ai_model === 'custom' && 'custom_api_url' in trader && (
                     <>
                       <div className="col-span-full">
-                        <div className="text-xs text-text-tertiary mb-1">Custom API URL</div>
+                        <div className="text-xs text-text-tertiary mb-1">{t.config.customApiUrl}</div>
                         <div className="text-sm font-mono text-text-secondary break-all">
                           {trader.custom_api_url}
                         </div>
                       </div>
                       {'custom_model_name' in trader && trader.custom_model_name && (
                         <div>
-                          <div className="text-xs text-text-tertiary mb-1">Model Name</div>
+                          <div className="text-xs text-text-tertiary mb-1">{t.config.modelName}</div>
                           <div className="text-sm font-mono text-text-secondary">
                             {trader.custom_model_name}
                           </div>
@@ -289,7 +528,7 @@ export function ConfigViewer() {
                 <div className="mt-4 pt-4 border-t border-border">
                   <div className="text-xs text-text-tertiary flex items-center gap-2">
                     <span>🔐</span>
-                    <span>API keys are masked for security (showing first/last 4 characters only)</span>
+                    <span>{t.config.apiKeysMasked}</span>
                   </div>
                 </div>
               </div>

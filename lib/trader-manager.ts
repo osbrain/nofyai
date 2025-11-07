@@ -120,6 +120,58 @@ export class TraderManager {
   }
 
   /**
+   * Emergency stop: Stop all traders and close all positions
+   */
+  async emergencyStopAll(): Promise<void> {
+    console.log(`\n🚨 EMERGENCY STOP: Stopping all traders and closing all positions...`);
+
+    const results: Array<{
+      trader_id: string;
+      stopped: boolean;
+      positions_closed: boolean;
+      error?: string;
+    }> = [];
+
+    for (const [traderId, engine] of this.traders.entries()) {
+      const result = {
+        trader_id: traderId,
+        stopped: false,
+        positions_closed: false,
+      };
+
+      try {
+        // Stop the trading engine first
+        try {
+          engine.stop();
+          result.stopped = true;
+          console.log(`   ✓ Stopped: ${traderId}`);
+        } catch (error) {
+          console.error(`   ✗ Failed to stop ${traderId}:`, error);
+        }
+
+        // Close all positions
+        try {
+          await engine.closeAllPositions();
+          result.positions_closed = true;
+          console.log(`   ✓ Closed all positions: ${traderId}`);
+        } catch (error) {
+          console.error(`   ✗ Failed to close positions for ${traderId}:`, error);
+          result.error = error instanceof Error ? error.message : String(error);
+        }
+      } catch (error) {
+        result.error = error instanceof Error ? error.message : String(error);
+      }
+
+      results.push(result);
+    }
+
+    const successCount = results.filter(r => r.stopped && r.positions_closed).length;
+    console.log(`\n✅ Emergency stop completed: ${successCount}/${this.traders.size} traders fully stopped\n`);
+
+    return;
+  }
+
+  /**
    * Get trader by ID
    */
   getTrader(traderId: string): TradingEngine | null {

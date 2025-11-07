@@ -47,6 +47,9 @@ export interface DecisionRecord {
     error?: string;
   }>;
 
+  // Input Prompt (optional - the full prompt sent to AI)
+  input_prompt?: string;
+
   // Performance Metrics (optional)
   performance?: {
     runtime_minutes: number;
@@ -117,6 +120,7 @@ export class DecisionLogger {
           unrealized_pnl_pct: pos.unrealized_pnl_pct,
         })),
         execution_results: executionResults,
+        input_prompt: fullDecision.user_prompt, // Save the full prompt sent to AI
         performance: {
           runtime_minutes: context.runtime_minutes,
           total_cycles: context.call_count,
@@ -400,13 +404,16 @@ export class DecisionLogger {
 
       const closePrice = closePosition.mark_price;
 
-      // Calculate PnL
+      // Calculate PnL percentage (price change)
       const priceChange = side === 'long'
         ? (closePrice - openPrice) / openPrice
         : (openPrice - closePrice) / openPrice;
 
       const pnlPct = priceChange * 100;
-      const pnl = closePosition.quantity * closePrice * priceChange * closePosition.leverage;
+
+      // Use the unrealized_pnl from snapshot (already includes leverage)
+      // This is the actual PnL at the moment of closing
+      const pnl = closePosition.unrealized_pnl;
 
       // Calculate holding time
       const openTimestamp = new Date(openTime).getTime();

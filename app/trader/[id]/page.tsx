@@ -6,7 +6,7 @@ import {
   useStatus,
   useAccount,
   usePositions,
-  useLatestDecisions,
+  useDecisions,
   useEquityHistory,
   usePerformance,
 } from '@/hooks/useTrading';
@@ -19,15 +19,17 @@ import { DecisionDetailModal } from '@/components/trader/DecisionDetailModal';
 import { PerformanceMetrics } from '@/components/trader/PerformanceMetrics';
 import { formatUSD, formatPercent } from '@/lib/utils';
 import { DecisionRecord } from '@/types';
+import { useTranslations } from '@/lib/i18n-context';
 
 export default function TraderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const t = useTranslations();
   const [selectedDecision, setSelectedDecision] = useState<DecisionRecord | null>(null);
 
   const { data: status } = useStatus(id);
   const { data: account } = useAccount(id);
   const { data: positions } = usePositions(id);
-  const { data: decisions } = useLatestDecisions(id);
+  const { data: decisions } = useDecisions(id);
   const { data: equityHistory } = useEquityHistory(id);
   const { data: performance } = usePerformance(id);
 
@@ -38,7 +40,7 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
           <div className="w-full px-6">
             <div className="flex items-center h-16">
               <Link href="/" className="text-sm text-primary hover:underline">
-                ← Back to Competition
+                ← {t.nav.backToCompetition}
               </Link>
             </div>
           </div>
@@ -65,14 +67,99 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="text-sm text-primary hover:underline flex items-center gap-2">
               <span>←</span>
-              <span>Back to Competition</span>
+              <span>{t.nav.backToCompetition}</span>
             </Link>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Start/Stop Button */}
               {isRunning ? (
-                <Badge variant="success">Live Trading</Badge>
+                <button
+                  onClick={async () => {
+                    if (!confirm(t.trader.confirmStop)) {
+                      return;
+                    }
+                    try {
+                      const response = await fetch(`/api/trade/stop?trader_id=${id}`, {
+                        method: 'POST',
+                      });
+
+                      if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || t.trader.failedToStopTrader);
+                      }
+
+                      alert(t.trader.traderStopped);
+                      window.location.reload();
+                    } catch (error) {
+                      alert(error instanceof Error ? error.message : t.trader.failedToStopTrader);
+                    }
+                  }}
+                  className="px-4 py-1.5 bg-warning text-white rounded-lg hover:bg-warning/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                >
+                  <span>⏸️</span>
+                  <span>{t.trader.stopTrading}</span>
+                </button>
               ) : (
-                <Badge variant="secondary">Offline</Badge>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/trade/start?trader_id=${id}`, {
+                        method: 'POST',
+                      });
+
+                      if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || t.trader.failedToStartTrader);
+                      }
+
+                      alert(t.trader.traderStarted);
+                      window.location.reload();
+                    } catch (error) {
+                      alert(error instanceof Error ? error.message : t.trader.failedToStartTrader);
+                    }
+                  }}
+                  className="px-4 py-1.5 bg-success text-white rounded-lg hover:bg-success/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                >
+                  <span>▶️</span>
+                  <span>{t.trader.startTrading}</span>
+                </button>
+              )}
+
+              {/* Emergency Stop (only when running) */}
+              {isRunning && (
+                <button
+                  onClick={async () => {
+                    if (!confirm(t.trader.confirmEmergencyStop)) {
+                      return;
+                    }
+                    try {
+                      const response = await fetch('/api/emergency-stop', {
+                        method: 'POST',
+                      });
+
+                      if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || t.trader.failedToEmergencyStop);
+                      }
+
+                      alert(t.trader.emergencyStopComplete);
+                      window.location.reload();
+                    } catch (error) {
+                      alert(error instanceof Error ? error.message : t.trader.failedToEmergencyStop);
+                    }
+                  }}
+                  className="px-4 py-1.5 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                >
+                  <span>🚨</span>
+                  <span>{t.trader.emergencyStop}</span>
+                </button>
+              )}
+
+              {/* Status Badge */}
+              {isRunning ? (
+                <Badge variant="success">{t.trader.liveTrading}</Badge>
+              ) : (
+                <Badge variant="secondary">{t.trader.offline}</Badge>
               )}
             </div>
           </div>
@@ -89,10 +176,10 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
                 <div className="text-3xl">🚀</div>
                 <div>
                   <h3 className="text-base font-bold text-text-primary mb-1">
-                    Trader Not Started
+                    {t.trader.traderNotStartedTitle}
                   </h3>
                   <p className="text-xs text-text-secondary">
-                    Start the AI trader to begin autonomous trading
+                    {t.trader.traderNotStartedDesc}
                   </p>
                 </div>
               </div>
@@ -102,12 +189,12 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
                     await fetch(`/api/trade/start?trader_id=${id}`, { method: 'POST' });
                     window.location.reload();
                   } catch (error) {
-                    alert('Failed to start trader');
+                    alert(t.trader.failedToStartTrader);
                   }
                 }}
                 className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm whitespace-nowrap"
               >
-                Start Trading
+                {t.trader.startTradingButton}
               </button>
             </div>
           </div>
@@ -120,13 +207,13 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
               🤖
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-text-primary">Trader Details</h1>
+              <h1 className="text-2xl font-bold text-text-primary">{t.trader.traderDetails}</h1>
               <div className="flex items-center gap-3 text-xs text-text-secondary">
-                <span>AI: <span className="font-semibold text-primary">{status.ai_provider?.toUpperCase() || 'UNKNOWN'}</span></span>
+                <span>{t.trader.ai}: <span className="font-semibold text-primary">{status.ai_provider?.toUpperCase() || 'UNKNOWN'}</span></span>
                 <span>•</span>
-                <span>Cycles: {status.call_count || 0}</span>
+                <span>{t.trader.cyclesLabel}: {status.call_count || 0}</span>
                 <span>•</span>
-                <span>Runtime: {status.runtime_minutes || 0}m</span>
+                <span>{t.trader.runtimeLabel}: {status.runtime_minutes || 0}m</span>
               </div>
             </div>
           </div>
@@ -135,7 +222,7 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
         {/* Account Overview - Top Row */}
         <div className="grid grid-cols-4 gap-3 mb-6">
           <Card className="p-3">
-            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">Total Equity</div>
+            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.totalEquity}</div>
             <div className="text-xl font-bold text-text-primary">{formatUSD(account.total_equity)}</div>
             <div className={`text-xs font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
               {formatPercent(account.total_pnl_pct)}
@@ -143,18 +230,18 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
           </Card>
 
           <Card className="p-3">
-            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">Available</div>
+            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.available}</div>
             <div className="text-xl font-bold text-text-primary">{formatUSD(account.available_balance)}</div>
             <div className="text-xs text-text-tertiary">
               {account.total_equity > 0
-                ? `${((account.available_balance / account.total_equity) * 100).toFixed(1)}% free`
-                : '100% free'
+                ? `${((account.available_balance / account.total_equity) * 100).toFixed(1)}% ${t.trader.free}`
+                : `100% ${t.trader.free}`
               }
             </div>
           </Card>
 
           <Card className="p-3">
-            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">Total P&L</div>
+            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.totalPnL}</div>
             <div className={`text-xl font-bold ${isProfitable ? 'text-success' : 'text-danger'}`}>
               {isProfitable ? '+' : ''}{formatUSD(account.total_pnl)}
             </div>
@@ -164,10 +251,10 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
           </Card>
 
           <Card className="p-3">
-            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">Positions</div>
+            <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.positions}</div>
             <div className="text-xl font-bold text-text-primary">{account.position_count}</div>
             <div className="text-xs text-text-tertiary">
-              Margin: {(account.margin_used_pct || 0).toFixed(1)}%
+              {t.trader.margin}: {(account.margin_used_pct || 0).toFixed(1)}%
             </div>
           </Card>
         </div>
@@ -179,8 +266,9 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
             <Card className="overflow-hidden h-full">
               <Tabs defaultValue="performance">
                 <TabsList className="w-full">
-                  <TabsTrigger value="performance" className="flex-1">Performance</TabsTrigger>
-                  <TabsTrigger value="decisions" className="flex-1">Decisions</TabsTrigger>
+                  <TabsTrigger value="performance" className="flex-1">{t.trader.performance}</TabsTrigger>
+                  <TabsTrigger value="decisions" className="flex-1">{t.trader.decisions}</TabsTrigger>
+                  <TabsTrigger value="trades" className="flex-1">{t.trader.trades}</TabsTrigger>
                 </TabsList>
 
                 {/* Performance Tab */}
@@ -190,7 +278,7 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
                   ) : (
                     <div className="text-center py-12 text-text-tertiary">
                       <div className="text-4xl mb-2">📊</div>
-                      <div className="text-sm">Loading performance data...</div>
+                      <div className="text-sm">{t.trader.loadingPerformance}</div>
                     </div>
                   )}
                 </TabsContent>
@@ -207,18 +295,18 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <span className="font-semibold text-text-primary text-sm">Cycle #{decision.cycle_number}</span>
+                              <span className="font-semibold text-text-primary text-sm">{t.trader.cycle} #{decision.cycle_number}</span>
                               <span className="text-xs text-text-secondary ml-2">
                                 {new Date(decision.timestamp).toLocaleString()}
                               </span>
                             </div>
                             <Badge variant={decision.success ? 'success' : 'danger'}>
-                              {decision.success ? 'Success' : 'Failed'}
+                              {decision.success ? t.trader.success : t.trader.failed}
                             </Badge>
                           </div>
                           {decision.decisions && decision.decisions.length > 0 && (
                             <div className="text-xs text-text-secondary mb-1">
-                              {decision.decisions.length} action(s)
+                              {decision.decisions.length} {t.trader.actions}
                             </div>
                           )}
                           {decision.cot_trace && (
@@ -232,8 +320,116 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
                   ) : (
                     <div className="text-center py-12 text-text-tertiary">
                       <div className="text-4xl mb-2">🧠</div>
-                      <div className="font-semibold mb-1 text-sm">No Decisions Yet</div>
-                      <div className="text-xs">AI decisions will appear here</div>
+                      <div className="font-semibold mb-1 text-sm">{t.trader.noDecisionsYet}</div>
+                      <div className="text-xs">{t.trader.decisionsWillAppear}</div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Trades Tab */}
+                <TabsContent value="trades" className="p-4">
+                  {decisions && decisions.length > 0 ? (
+                    (() => {
+                      // Extract all trade actions (open/close) from decisions
+                      const allTrades: Array<{
+                        cycle: number;
+                        timestamp: string;
+                        symbol: string;
+                        action: string;
+                        actionLabel: string;
+                        actionType: 'buy' | 'sell';
+                      }> = [];
+
+                      decisions.forEach(decision => {
+                        decision.decisions.forEach(d => {
+                          if (d.action === 'open_long' || d.action === 'open_short' ||
+                              d.action === 'close_long' || d.action === 'close_short') {
+                            let actionLabel = '';
+                            let actionType: 'buy' | 'sell' = 'buy';
+
+                            if (d.action === 'open_long') {
+                              actionLabel = t.trader.openLong;
+                              actionType = 'buy';
+                            } else if (d.action === 'open_short') {
+                              actionLabel = t.trader.openShort;
+                              actionType = 'sell';
+                            } else if (d.action === 'close_long') {
+                              actionLabel = t.trader.closeLong;
+                              actionType = 'sell';
+                            } else if (d.action === 'close_short') {
+                              actionLabel = t.trader.closeShort;
+                              actionType = 'buy';
+                            }
+
+                            allTrades.push({
+                              cycle: decision.cycle_number,
+                              timestamp: decision.timestamp,
+                              symbol: d.symbol,
+                              action: d.action,
+                              actionLabel,
+                              actionType,
+                            });
+                          }
+                        });
+                      });
+
+                      return allTrades.length > 0 ? (
+                        <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                          {allTrades.map((trade, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between p-3 bg-background-secondary rounded-lg border border-border hover:border-primary/30 transition-all"
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Action Icon */}
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold ${
+                                  trade.actionType === 'buy'
+                                    ? 'bg-success/10 text-success'
+                                    : 'bg-danger/10 text-danger'
+                                }`}>
+                                  {trade.actionType === 'buy' ? '↗' : '↘'}
+                                </div>
+
+                                {/* Trade Details */}
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className={`text-sm font-bold ${
+                                      trade.actionType === 'buy' ? 'text-success' : 'text-danger'
+                                    }`}>
+                                      {trade.actionLabel}
+                                    </span>
+                                    <span className="text-sm font-semibold text-text-primary">
+                                      {trade.symbol}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-text-secondary">
+                                    <span>{t.trader.cycle} #{trade.cycle}</span>
+                                    <span>•</span>
+                                    <span>{new Date(trade.timestamp).toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Badge */}
+                              <Badge variant={trade.actionType === 'buy' ? 'success' : 'danger'}>
+                                {trade.actionType === 'buy' ? t.trader.buy : t.trader.sell}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 text-text-tertiary">
+                          <div className="text-4xl mb-2">📊</div>
+                          <div className="font-semibold mb-1 text-sm">{t.trader.noTradesYet}</div>
+                          <div className="text-xs">{t.trader.tradesWillAppear}</div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="text-center py-12 text-text-tertiary">
+                      <div className="text-4xl mb-2">📊</div>
+                      <div className="font-semibold mb-1 text-sm">{t.trader.noTradesYet}</div>
+                      <div className="text-xs">{t.trader.tradesWillAppear}</div>
                     </div>
                   )}
                 </TabsContent>
@@ -245,7 +441,7 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
           <div className="lg:col-span-3 space-y-6">
             {/* Equity Chart - Large */}
             <Card className="p-4">
-              <h3 className="text-sm font-bold text-text-primary mb-3">Equity Performance</h3>
+              <h3 className="text-sm font-bold text-text-primary mb-3">{t.trader.equityPerformance}</h3>
               {equityHistory && equityHistory.length > 0 ? (
                 <div className="h-[400px]">
                   <EquityChart
@@ -257,8 +453,8 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
                 <div className="h-[400px] flex items-center justify-center text-text-tertiary">
                   <div className="text-center">
                     <div className="text-5xl mb-3 opacity-30">📈</div>
-                    <div className="text-sm font-semibold mb-1">No Equity History</div>
-                    <div className="text-xs">Chart will appear as trading progresses</div>
+                    <div className="text-sm font-semibold mb-1">{t.trader.noEquityHistory}</div>
+                    <div className="text-xs">{t.trader.chartWillAppear}</div>
                   </div>
                 </div>
               )}
@@ -266,17 +462,18 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
 
             {/* Positions Table - Compact */}
             <Card className="p-4">
-              <h3 className="text-sm font-bold text-text-primary mb-3">Current Positions</h3>
+              <h3 className="text-sm font-bold text-text-primary mb-3">{t.trader.currentPositions}</h3>
               {positions && positions.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className="border-b border-border">
                       <tr className="text-left">
-                        <th className="pb-2 font-semibold text-text-secondary">Symbol</th>
-                        <th className="pb-2 font-semibold text-text-secondary">Side</th>
-                        <th className="pb-2 font-semibold text-text-secondary">Entry</th>
-                        <th className="pb-2 font-semibold text-text-secondary">Lev</th>
-                        <th className="pb-2 font-semibold text-text-secondary text-right">P&L</th>
+                        <th className="pb-2 font-semibold text-text-secondary">{t.trader.symbol}</th>
+                        <th className="pb-2 font-semibold text-text-secondary">{t.trader.side}</th>
+                        <th className="pb-2 font-semibold text-text-secondary">{t.trader.entryPrice}</th>
+                        <th className="pb-2 font-semibold text-text-secondary">{t.trader.lev}</th>
+                        <th className="pb-2 font-semibold text-text-secondary text-right">{t.trader.unrealizedPnL}</th>
+                        <th className="pb-2 font-semibold text-text-secondary text-center">{t.trader.action}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -298,6 +495,38 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
                               ({formatPercent(pos.unrealized_pnl_pct)})
                             </div>
                           </td>
+                          <td className="py-2 text-center">
+                            <button
+                              onClick={async () => {
+                                if (!confirm(t.trader.confirmClosePosition.replace('{side}', pos.side).replace('{symbol}', pos.symbol))) {
+                                  return;
+                                }
+                                try {
+                                  const response = await fetch('/api/positions/close', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      trader_id: id,
+                                      symbol: pos.symbol,
+                                      side: pos.side,
+                                    }),
+                                  });
+
+                                  if (!response.ok) {
+                                    const error = await response.json();
+                                    throw new Error(error.error || t.trader.failedToClosePosition);
+                                  }
+
+                                  window.location.reload();
+                                } catch (error) {
+                                  alert(error instanceof Error ? error.message : t.trader.failedToClosePosition);
+                                }
+                              }}
+                              className="px-3 py-1 bg-danger/10 text-danger hover:bg-danger hover:text-white rounded transition-colors font-semibold"
+                            >
+                              {t.trader.close}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -306,7 +535,7 @@ export default function TraderPage({ params }: { params: Promise<{ id: string }>
               ) : (
                 <div className="text-center py-8 text-text-tertiary">
                   <div className="text-4xl mb-2 opacity-30">📊</div>
-                  <div className="text-xs">No active positions</div>
+                  <div className="text-xs">{t.trader.noActivePositions}</div>
                 </div>
               )}
             </Card>

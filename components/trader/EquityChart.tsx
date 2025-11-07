@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { EquityPoint } from '@/types';
 import { formatUSD, formatPercent } from '@/lib/utils';
+import { useTranslations } from '@/lib/i18n-context';
 
 interface EquityChartProps {
   data: EquityPoint[];
@@ -20,6 +21,7 @@ interface EquityChartProps {
 }
 
 export function EquityChart({ data, initialBalance }: EquityChartProps) {
+  const t = useTranslations();
   // Sort data by timestamp
   const sortedData = useMemo(() => {
     return [...data].sort((a, b) =>
@@ -64,33 +66,33 @@ export function EquityChart({ data, initialBalance }: EquityChartProps) {
           </div>
           <div className="space-y-2">
             <div>
-              <div className="text-xs text-text-tertiary">Total Equity</div>
+              <div className="text-xs text-text-tertiary">{t.trader.totalEquity}</div>
               <div className="text-lg font-bold text-text-primary">
                 {formatUSD(data.total_equity)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-text-tertiary">Profit & Loss</div>
+              <div className="text-xs text-text-tertiary">{t.competition.profitAndLoss}</div>
               <div className={`text-sm font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
                 {isProfitable ? '+' : ''}{formatUSD(data.total_pnl)} ({formatPercent(data.total_pnl_pct)})
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
               <div>
-                <div className="text-xs text-text-tertiary">Positions</div>
+                <div className="text-xs text-text-tertiary">{t.trader.positions}</div>
                 <div className="text-sm font-semibold text-text-primary">
                   {data.position_count}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary">Margin</div>
+                <div className="text-xs text-text-tertiary">{t.trader.margin}</div>
                 <div className="text-sm font-semibold text-text-primary">
                   {data.margin_used_pct.toFixed(1)}%
                 </div>
               </div>
             </div>
             <div className="text-xs text-text-tertiary pt-1">
-              Cycle #{data.cycle_number}
+              {t.trader.cycle} #{data.cycle_number}
             </div>
           </div>
         </div>
@@ -105,8 +107,8 @@ export function EquityChart({ data, initialBalance }: EquityChartProps) {
       <div className="w-full h-[400px] flex items-center justify-center text-text-tertiary">
         <div className="text-center">
           <div className="text-6xl mb-4 opacity-30">📈</div>
-          <div className="font-semibold mb-2">No Equity History</div>
-          <div className="text-sm">Chart will appear as trading progresses</div>
+          <div className="font-semibold mb-2">{t.trader.noEquityHistory}</div>
+          <div className="text-sm">{t.trader.chartWillAppear}</div>
         </div>
       </div>
     );
@@ -153,7 +155,7 @@ export function EquityChart({ data, initialBalance }: EquityChartProps) {
             stroke="#9CA3AF"
             strokeDasharray="3 3"
             label={{
-              value: 'Initial',
+              value: t.trader.initial,
               position: 'right',
               fill: '#9CA3AF',
               fontSize: 11,

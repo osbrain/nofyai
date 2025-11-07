@@ -7,9 +7,11 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { ComparisonChart } from '@/components/competition/ComparisonChart';
 import { formatUSD, formatPercent, getTraderColor } from '@/lib/utils';
 import Link from 'next/link';
+import { useTranslations } from '@/lib/i18n-context';
 
 export function CompetitionPage() {
   const { data: competition, error, isLoading } = useCompetition();
+  const t = useTranslations();
 
   // TODO: Implement proper equity history fetching without violating React Hooks rules
   // For now, we'll disable the comparison chart to avoid Hooks violations
@@ -27,7 +29,7 @@ export function CompetitionPage() {
       <Card className="p-8">
         <div className="text-center text-danger">
           <div className="text-4xl mb-4">⚠️</div>
-          <div className="font-semibold mb-2">Failed to load competition data</div>
+          <div className="font-semibold mb-2">{t.competition.failedToLoad}</div>
           <div className="text-sm text-text-secondary">{error.message}</div>
         </div>
       </Card>
@@ -61,13 +63,13 @@ export function CompetitionPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-text-primary flex items-center gap-3">
-              AI Trading Competition
+              {t.competition.title}
               <Badge variant="primary">
-                {competition.count} {competition.count === 1 ? 'Trader' : 'Traders'}
+                {competition.count} {competition.count === 1 ? t.competition.trader : t.competition.traders}
               </Badge>
             </h1>
             <p className="text-text-secondary text-sm mt-1">
-              Live algorithmic trading competition powered by AI
+              {t.competition.subtitle}
             </p>
           </div>
         </div>
@@ -79,12 +81,12 @@ export function CompetitionPage() {
             className="px-4 py-2 bg-white border border-border rounded-lg hover:border-primary/50 transition-all flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-primary"
           >
             <span>⚙️</span>
-            <span>Config</span>
+            <span>{t.competition.config}</span>
           </Link>
 
           {leader && (
             <div className="text-right">
-              <div className="text-xs text-text-secondary mb-1">Current Leader</div>
+              <div className="text-xs text-text-secondary mb-1">{t.competition.currentLeader}</div>
               <div className="text-lg font-bold text-primary">{leader.trader_name}</div>
               <div className={`text-sm font-semibold ${leader.total_pnl >= 0 ? 'text-success' : 'text-danger'}`}>
                 {formatPercent(leader.total_pnl_pct)}
@@ -109,9 +111,9 @@ export function CompetitionPage() {
       {/* Leaderboard */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-text-primary">Leaderboard</h2>
+          <h2 className="text-xl font-bold text-text-primary">{t.competition.leaderboard}</h2>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-secondary">Ranked by ROI</span>
+            <span className="text-xs text-text-secondary">{t.competition.rankedByROI}</span>
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
           </div>
         </div>
@@ -154,17 +156,17 @@ export function CompetitionPage() {
                           {trader.trader_name}
                         </span>
                         {isRunning ? (
-                          <Badge variant="success">Live</Badge>
+                          <Badge variant="success">{t.competition.live}</Badge>
                         ) : (
-                          <Badge variant="secondary">Offline</Badge>
+                          <Badge variant="secondary">{t.trader.offline}</Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-text-secondary">
-                        <span>Model: <span className="font-semibold" style={{ color: traderColor }}>{trader.ai_model?.toUpperCase() || 'UNKNOWN'}</span></span>
+                        <span>{t.competition.model}: <span className="font-semibold" style={{ color: traderColor }}>{trader.ai_model?.toUpperCase() || 'UNKNOWN'}</span></span>
                         <span>•</span>
-                        <span>{trader.call_count || 0} cycles</span>
+                        <span>{trader.call_count || 0} {t.competition.cycles}</span>
                         <span>•</span>
-                        <span>{trader.position_count || 0} positions</span>
+                        <span>{trader.position_count || 0} {t.competition.positions}</span>
                       </div>
                     </div>
                   </div>
@@ -173,7 +175,7 @@ export function CompetitionPage() {
                   <div className="flex items-center gap-8">
                     {/* Total Equity */}
                     <div className="text-right">
-                      <div className="text-xs text-text-secondary mb-1">Total Equity</div>
+                      <div className="text-xs text-text-secondary mb-1">{t.competition.totalEquity}</div>
                       <div className="text-lg font-bold text-text-primary">
                         {formatUSD(trader.total_equity || 0)}
                       </div>
@@ -181,7 +183,7 @@ export function CompetitionPage() {
 
                     {/* P&L */}
                     <div className="text-right min-w-[120px]">
-                      <div className="text-xs text-text-secondary mb-1">Profit & Loss</div>
+                      <div className="text-xs text-text-secondary mb-1">{t.competition.profitAndLoss}</div>
                       <div className={`text-lg font-bold ${(trader.total_pnl || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
                         {(trader.total_pnl || 0) >= 0 ? '+' : ''}{formatUSD(trader.total_pnl || 0)}
                       </div>
@@ -192,7 +194,7 @@ export function CompetitionPage() {
 
                     {/* Margin Usage */}
                     <div className="text-right">
-                      <div className="text-xs text-text-secondary mb-1">Margin Used</div>
+                      <div className="text-xs text-text-secondary mb-1">{t.competition.marginUsed}</div>
                       <div className="text-lg font-semibold text-text-primary">
                         {(trader.margin_used_pct || 0).toFixed(1)}%
                       </div>
@@ -207,8 +209,8 @@ export function CompetitionPage() {
         {sortedTraders.length === 0 && (
           <div className="text-center py-16 text-text-tertiary">
             <div className="text-6xl mb-4 opacity-30">🤖</div>
-            <div className="text-lg font-semibold mb-2">No Traders Active</div>
-            <div className="text-sm">Start the backend to see live trading data</div>
+            <div className="text-lg font-semibold mb-2">{t.competition.noTradersActive}</div>
+            <div className="text-sm">{t.competition.startBackend}</div>
           </div>
         )}
       </Card>

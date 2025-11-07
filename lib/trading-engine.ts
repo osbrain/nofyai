@@ -11,6 +11,7 @@ import {
 } from './ai';
 import { getMarketDataBatch, getMarketData, DEFAULT_SYMBOLS } from './market-data';
 import { DecisionLogger } from './decision-logger';
+import { TelegramNotifier, TelegramConfig } from './telegram-notifier';
 
 // ========================================
 // Trading Engine State
@@ -28,6 +29,8 @@ export interface TradingEngineConfig {
   altcoinLeverage: number;
   scanIntervalMinutes: number;
   traderId?: string; // Optional trader ID for logs
+  traderName?: string; // Optional trader name for notifications
+  telegram?: TelegramConfig; // Optional Telegram notification config
 }
 
 export interface TradingSession {
@@ -50,10 +53,13 @@ export class TradingEngine {
   private intervalId: NodeJS.Timeout | null = null;
   private logger: DecisionLogger;
   private traderId: string;
+  private traderName: string;
+  private telegram: TelegramNotifier | null = null;
 
   constructor(config: TradingEngineConfig) {
     this.config = config;
     this.traderId = config.traderId || `trader_${Date.now()}`;
+    this.traderName = config.traderName || this.traderId;
 
     this.trader = new AsterTrader({
       user: config.aster.user,
@@ -62,6 +68,12 @@ export class TradingEngine {
     });
     this.aiConfig = config.ai;
     this.logger = new DecisionLogger(this.traderId);
+
+    // Initialize Telegram notifier if configured
+    if (config.telegram && config.telegram.enabled) {
+      this.telegram = new TelegramNotifier(config.telegram);
+      console.log('📱 Telegram notifications enabled');
+    }
 
     this.session = {
       isRunning: false,
@@ -154,6 +166,17 @@ export class TradingEngine {
       console.log(`\n✅ Cycle #${this.session.callCount} completed\n`);
     } catch (error) {
       console.error('❌ Error in trading cycle:', error);
+
+      // Send error notification via Telegram
+      if (this.telegram) {
+        await this.telegram.notifyError(
+          this.traderId,
+          this.traderName,
+          error instanceof Error ? error.message : String(error),
+          'Trading Cycle'
+        );
+      }
+
       // Continue running even on error
     }
   }
@@ -316,20 +339,52 @@ export class TradingEngine {
 
     for (const decision of sorted) {
       try {
-        await this.executeDecision(decision, ctx);
+        const result = await this.executeDecision(decision, ctx);
         executionResults.push({
           symbol: decision.symbol,
           action: decision.action,
           success: true,
         });
+
+        // Send Telegram notification for successful trade
+        if (this.telegram && result) {
+          await this.telegram.notifyTrade({
+            trader_id: this.traderId,
+            trader_name: this.traderName,
+            symbol: decision.symbol,
+            action: decision.action,
+            side: result.side,
+            entry_price: result.entry_price,
+            quantity: result.quantity,
+            leverage: result.leverage,
+            pnl: result.pnl,
+            pnl_pct: result.pnl_pct,
+            success: true,
+          });
+        }
       } catch (error) {
         console.error(`❌ Failed to execute decision for ${decision.symbol}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
         executionResults.push({
           symbol: decision.symbol,
           action: decision.action,
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage,
         });
+
+        // Send Telegram notification for failed trade
+        if (this.telegram) {
+          await this.telegram.notifyTrade({
+            trader_id: this.traderId,
+            trader_name: this.traderName,
+            symbol: decision.symbol,
+            action: decision.action,
+            success: false,
+            error: errorMessage,
+          });
+        }
+
         // Continue with other decisions
       }
     }
@@ -337,7 +392,17 @@ export class TradingEngine {
     return executionResults;
   }
 
-  private async executeDecision(decision: Decision, ctx: TradingContext): Promise<void> {
+  private async executeDecision(
+    decision: Decision,
+    ctx: TradingContext
+  ): Promise<{
+    side?: string;
+    entry_price?: number;
+    quantity?: number;
+    leverage?: number;
+    pnl?: number;
+    pnl_pct?: number;
+  } | null> {
     const { symbol, action } = decision;
 
     console.log(`\n🎯 Executing: ${action} ${symbol}`);
@@ -349,7 +414,7 @@ export class TradingEngine {
         const existingPos = ctx.positions.find(p => p.symbol === symbol && p.side === 'long');
         if (existingPos) {
           console.log(`⚠️  Long position already exists for ${symbol}, skipping`);
-          return;
+          return null;
         }
 
         // Calculate quantity from position size USD
@@ -364,14 +429,19 @@ export class TradingEngine {
         await this.trader.setTakeProfit(symbol, 'LONG', quantity, decision.take_profit!);
 
         console.log(`✅ Long position opened for ${symbol}`);
-        break;
+        return {
+          side: 'LONG',
+          entry_price: price,
+          quantity: quantity,
+          leverage: decision.leverage!,
+        };
       }
 
       case 'open_short': {
         const existingPos = ctx.positions.find(p => p.symbol === symbol && p.side === 'short');
         if (existingPos) {
           console.log(`⚠️  Short position already exists for ${symbol}, skipping`);
-          return;
+          return null;
         }
 
         const price = await this.trader.getMarketPrice(symbol);
@@ -384,14 +454,19 @@ export class TradingEngine {
         await this.trader.setTakeProfit(symbol, 'SHORT', quantity, decision.take_profit!);
 
         console.log(`✅ Short position opened for ${symbol}`);
-        break;
+        return {
+          side: 'SHORT',
+          entry_price: price,
+          quantity: quantity,
+          leverage: decision.leverage!,
+        };
       }
 
       case 'close_long': {
         const pos = ctx.positions.find(p => p.symbol === symbol && p.side === 'long');
         if (!pos) {
           console.log(`⚠️  No long position found for ${symbol}, skipping`);
-          return;
+          return null;
         }
 
         console.log(`   Closing long: ${pos.quantity.toFixed(4)}`);
@@ -401,14 +476,18 @@ export class TradingEngine {
         delete this.session.positionFirstSeenTime[`${symbol}_long`];
 
         console.log(`✅ Long position closed for ${symbol}`);
-        break;
+        return {
+          side: 'LONG',
+          pnl: pos.unrealized_pnl,
+          pnl_pct: pos.unrealized_pnl_pct,
+        };
       }
 
       case 'close_short': {
         const pos = ctx.positions.find(p => p.symbol === symbol && p.side === 'short');
         if (!pos) {
           console.log(`⚠️  No short position found for ${symbol}, skipping`);
-          return;
+          return null;
         }
 
         console.log(`   Closing short: ${pos.quantity.toFixed(4)}`);
@@ -418,19 +497,24 @@ export class TradingEngine {
         delete this.session.positionFirstSeenTime[`${symbol}_short`];
 
         console.log(`✅ Short position closed for ${symbol}`);
-        break;
+        return {
+          side: 'SHORT',
+          pnl: pos.unrealized_pnl,
+          pnl_pct: pos.unrealized_pnl_pct,
+        };
       }
 
       case 'hold':
         console.log(`⏸️  Holding position for ${symbol}`);
-        break;
+        return null;
 
       case 'wait':
         console.log(`⏳ Waiting for opportunity on ${symbol}`);
-        break;
+        return null;
 
       default:
         console.log(`⚠️  Unknown action: ${action}`);
+        return null;
     }
   }
 
@@ -588,5 +672,133 @@ export class TradingEngine {
       initialBalance: this.config.initialBalance,
       scanIntervalMinutes: this.config.scanIntervalMinutes,
     };
+  }
+
+  /**
+   * Manually close a position
+   */
+  async closePosition(symbol: string, side: string): Promise<void> {
+    try {
+      console.log(`🔴 Manual close requested: ${side} ${symbol}`);
+
+      // Get current positions to validate
+      const positions = await this.trader.getPositions();
+      const pos = positions.find(p => p.symbol === symbol && p.side === side);
+
+      if (!pos) {
+        throw new Error(`No ${side} position found for ${symbol}`);
+      }
+
+      // Execute close
+      if (side === 'long') {
+        await this.trader.closeLong(symbol, pos.positionAmt);
+        delete this.session.positionFirstSeenTime[`${symbol}_long`];
+      } else if (side === 'short') {
+        await this.trader.closeShort(symbol, pos.positionAmt);
+        delete this.session.positionFirstSeenTime[`${symbol}_short`];
+      } else {
+        throw new Error(`Invalid side: ${side}`);
+      }
+
+      console.log(`✅ Position closed manually: ${side} ${symbol}`);
+
+      // Send Telegram notification
+      if (this.telegram) {
+        await this.telegram.notifyTrade({
+          trader_id: this.traderId,
+          trader_name: this.traderName,
+          symbol: symbol,
+          action: `close_${side}`,
+          side: side.toUpperCase(),
+          pnl: pos.unRealizedProfit,
+          pnl_pct: ((pos.markPrice - pos.entryPrice) / pos.entryPrice) * 100 * (side === 'short' ? -1 : 1),
+          success: true,
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Failed to close position: ${error}`);
+
+      // Send error notification
+      if (this.telegram) {
+        await this.telegram.notifyError(
+          this.traderId,
+          this.traderName,
+          error instanceof Error ? error.message : String(error),
+          `Manual Close: ${side} ${symbol}`
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Close all positions (emergency stop)
+   */
+  async closeAllPositions(): Promise<void> {
+    try {
+      console.log('🚨 Emergency close all positions requested');
+
+      const positions = await this.trader.getPositions();
+
+      if (positions.length === 0) {
+        console.log('No positions to close');
+        return;
+      }
+
+      console.log(`Closing ${positions.length} positions...`);
+
+      for (const pos of positions) {
+        try {
+          if (pos.side === 'long') {
+            await this.trader.closeLong(pos.symbol, pos.positionAmt);
+            delete this.session.positionFirstSeenTime[`${pos.symbol}_long`];
+          } else {
+            await this.trader.closeShort(pos.symbol, pos.positionAmt);
+            delete this.session.positionFirstSeenTime[`${pos.symbol}_short`];
+          }
+
+          console.log(`✅ Closed ${pos.side} ${pos.symbol}`);
+
+          // Send notification for each closed position
+          if (this.telegram) {
+            await this.telegram.notifyTrade({
+              trader_id: this.traderId,
+              trader_name: this.traderName,
+              symbol: pos.symbol,
+              action: `close_${pos.side}`,
+              side: pos.side.toUpperCase(),
+              pnl: pos.unRealizedProfit,
+              pnl_pct: ((pos.markPrice - pos.entryPrice) / pos.entryPrice) * 100 * (pos.side === 'short' ? -1 : 1),
+              success: true,
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to close ${pos.side} ${pos.symbol}:`, error);
+        }
+      }
+
+      console.log('✅ All positions closed');
+
+      // Send summary notification
+      if (this.telegram) {
+        await this.telegram.sendCustomMessage(
+          `🚨 *EMERGENCY STOP*\n\nAll ${positions.length} positions have been closed for trader: ${this.traderName}\n\n🕐 ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`
+        );
+      }
+    } catch (error) {
+      console.error('❌ Failed to close all positions:', error);
+
+      if (this.telegram) {
+        await this.telegram.notifyError(
+          this.traderId,
+          this.traderName,
+          error instanceof Error ? error.message : String(error),
+          'Emergency Close All'
+        );
+      }
+
+      throw error;
+    }
   }
 }

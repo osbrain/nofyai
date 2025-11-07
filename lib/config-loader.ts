@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { TradingEngineConfig } from './trading-engine';
 import { AIConfig } from './ai';
+import { TelegramConfig } from './telegram-notifier';
 
 // ========================================
 // Configuration Types
@@ -37,6 +38,7 @@ export interface AppConfig {
     btc_eth_leverage: number;
     altcoin_leverage: number;
   };
+  telegram?: TelegramConfig;
   use_default_coins: boolean;
   default_coins: string[];
   coin_pool_api_url?: string;
@@ -179,6 +181,8 @@ export class ConfigLoader {
       altcoinLeverage: this.config.leverage.altcoin_leverage,
       scanIntervalMinutes: traderConfig.scan_interval_minutes,
       traderId: traderConfig.id,
+      traderName: traderConfig.name,
+      telegram: this.config.telegram,
     };
   }
 }

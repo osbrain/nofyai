@@ -209,10 +209,22 @@ export interface LeverageConfig {
   altcoin_leverage: number;
 }
 
+// Telegram Configuration
+export interface TelegramConfig {
+  enabled: boolean;
+  bot_token: string;
+  chat_id: string;
+  notify_on_trade: boolean;
+  notify_on_error: boolean;
+  notify_on_daily_summary: boolean;
+  notify_on_performance_warning: boolean;
+}
+
 // System Configuration
 export interface SystemConfig {
   traders: TraderConfig[];
   leverage: LeverageConfig;
+  telegram?: TelegramConfig;
   use_default_coins: boolean;
   default_coins: string[];
   coin_pool_api_url: string;

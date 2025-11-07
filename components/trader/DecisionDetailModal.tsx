@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatUSD, formatPercent } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslations } from '@/lib/i18n-context';
 
 interface DecisionDetailModalProps {
   decision: DecisionRecord | null;
@@ -12,6 +13,7 @@ interface DecisionDetailModalProps {
 }
 
 export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalProps) {
+  const t = useTranslations();
   if (!decision) return null;
 
   // Clean up CoT trace: remove trailing ```json or ```
@@ -28,14 +30,14 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-text-primary">AI 决策详情</h2>
+            <h2 className="text-2xl font-bold text-text-primary">{t.trader.decisionDetail}</h2>
             <div className="flex items-center gap-3 mt-2 text-sm text-text-secondary">
               <span>Cycle #{decision.cycle_number}</span>
               <span>•</span>
               <span>{new Date(decision.timestamp).toLocaleString()}</span>
               <span>•</span>
               <Badge variant={decision.success ? 'success' : 'danger'}>
-                {decision.success ? '成功' : '失败'}
+                {decision.success ? t.trader.success : t.trader.failed}
               </Badge>
             </div>
           </div>
@@ -58,7 +60,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-danger">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                 </svg>
-                <h3 className="font-bold text-danger">错误信息</h3>
+                <h3 className="font-bold text-danger">{t.trader.errorMessage}</h3>
               </div>
               <p className="text-sm text-danger whitespace-pre-wrap">{decision.error_message}</p>
             </div>
@@ -68,29 +70,29 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
           <div className="bg-background-secondary rounded-lg p-4">
             <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
               <span>📊</span>
-              <span>账户状态快照</span>
+              <span>{t.trader.accountSnapshot}</span>
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <div className="text-xs text-text-tertiary mb-1">账户净值</div>
+                <div className="text-xs text-text-tertiary mb-1">{t.trader.accountEquity}</div>
                 <div className="text-lg font-bold text-text-primary">{formatUSD(decision.account_snapshot.total_equity)}</div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary mb-1">可用余额</div>
+                <div className="text-xs text-text-tertiary mb-1">{t.trader.availableBalance}</div>
                 <div className="text-lg font-bold text-text-primary">{formatUSD(decision.account_snapshot.available_balance)}</div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary mb-1">总盈亏</div>
+                <div className="text-xs text-text-tertiary mb-1">{t.trader.totalPnL}</div>
                 <div className={`text-lg font-bold ${decision.account_snapshot.total_pnl >= 0 ? 'text-success' : 'text-danger'}`}>
                   {decision.account_snapshot.total_pnl >= 0 ? '+' : ''}{formatUSD(decision.account_snapshot.total_pnl)}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary mb-1">持仓数量</div>
+                <div className="text-xs text-text-tertiary mb-1">{t.trader.positionCount}</div>
                 <div className="text-lg font-bold text-text-primary">{decision.account_snapshot.position_count}</div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary mb-1">保证金使用率</div>
+                <div className="text-xs text-text-tertiary mb-1">{t.trader.marginUsed}</div>
                 <div className="text-lg font-bold text-text-primary">{decision.account_snapshot.margin_used_pct.toFixed(1)}%</div>
               </div>
             </div>
@@ -101,7 +103,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             <div className="bg-background-secondary rounded-lg p-4">
               <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                 <span>📈</span>
-                <span>持仓快照</span>
+                <span>{t.trader.positionSnapshot}</span>
               </h3>
               <div className="space-y-3">
                 {decision.positions_snapshot.map((pos, i) => (
@@ -120,15 +122,15 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
-                        <span className="text-text-tertiary">入场价: </span>
+                        <span className="text-text-tertiary">{t.trader.entryPrice}: </span>
                         <span className="font-mono text-text-primary">{formatUSD(pos.entry_price)}</span>
                       </div>
                       <div>
-                        <span className="text-text-tertiary">现价: </span>
+                        <span className="text-text-tertiary">{t.trader.currentPrice}: </span>
                         <span className="font-mono text-text-primary">{formatUSD(pos.mark_price)}</span>
                       </div>
                       <div>
-                        <span className="text-text-tertiary">数量: </span>
+                        <span className="text-text-tertiary">{t.trader.quantity}: </span>
                         <span className="font-mono text-text-primary">{pos.quantity.toFixed(4)}</span>
                       </div>
                     </div>
@@ -143,7 +145,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             <div className="bg-background-secondary rounded-lg p-4">
               <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                 <span>🪙</span>
-                <span>候选币种 ({decision.candidate_coins.length} 个)</span>
+                <span>{t.trader.candidateCoins} ({decision.candidate_coins.length} {t.trader.coins})</span>
               </h3>
               <div className="flex flex-wrap gap-2">
                 {decision.candidate_coins.map((coin, i) => (
@@ -160,7 +162,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             <div className="bg-background-secondary rounded-lg p-4">
               <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                 <span>📥</span>
-                <span>输入 Prompt（发送给AI的市场数据）</span>
+                <span>{t.trader.inputPrompt}</span>
               </h3>
               <div className="bg-white rounded-lg p-4 border border-border">
                 <pre className="text-xs font-mono text-text-secondary whitespace-pre-wrap overflow-x-auto">
@@ -175,7 +177,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
               <h3 className="font-bold text-primary mb-3 flex items-center gap-2">
                 <span>💭</span>
-                <span>AI 思维链分析（Chain of Thought）</span>
+                <span>{t.trader.cotAnalysis}</span>
               </h3>
               <div className="bg-white rounded-lg p-4 border border-primary/30 prose prose-sm max-w-none prose-headings:text-text-primary prose-p:text-text-secondary prose-strong:text-text-primary prose-li:text-text-secondary prose-ul:list-disc prose-ol:list-decimal">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -190,7 +192,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             <div className="bg-background-secondary rounded-lg p-4">
               <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                 <span>📋</span>
-                <span>决策 JSON</span>
+                <span>{t.trader.decisionJson}</span>
               </h3>
               <div className="bg-white rounded-lg p-4 border border-border">
                 <pre className="text-xs font-mono text-text-secondary whitespace-pre-wrap overflow-x-auto">
@@ -205,7 +207,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             <div className="bg-background-secondary rounded-lg p-4">
               <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                 <span>⚡</span>
-                <span>执行日志</span>
+                <span>{t.trader.executionLog}</span>
               </h3>
               <div className="space-y-2">
                 {decision.execution_log.map((log, i) => (
@@ -224,7 +226,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             <div className="bg-background-secondary rounded-lg p-4">
               <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                 <span>🎯</span>
-                <span>AI 决策动作</span>
+                <span>{t.trader.decisionActions}</span>
               </h3>
               <div className="space-y-3">
                 {decision.decisions.map((aiDecision, i) => {
@@ -248,7 +250,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                           </Badge>
                           {executionResult && (
                             <Badge variant={executionResult.success ? 'success' : 'danger'}>
-                              {executionResult.success ? '成功' : '失败'}
+                              {executionResult.success ? t.trader.success : t.trader.failed}
                             </Badge>
                           )}
                         </div>
@@ -258,7 +260,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                       {/* AI Reasoning */}
                       {aiDecision.reasoning && (
                         <div className="mb-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                          <div className="text-xs text-text-tertiary mb-1">AI 决策理由：</div>
+                          <div className="text-xs text-text-tertiary mb-1">{t.trader.decisionReasoning}</div>
                           <div className="text-sm text-text-secondary">{aiDecision.reasoning}</div>
                         </div>
                       )}
@@ -267,19 +269,19 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                       {position && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                           <div>
-                            <span className="text-text-tertiary">数量: </span>
+                            <span className="text-text-tertiary">{t.trader.quantity}: </span>
                             <span className="font-mono text-text-primary">{position.quantity.toFixed(4)}</span>
                           </div>
                           <div>
-                            <span className="text-text-tertiary">入场价: </span>
+                            <span className="text-text-tertiary">{t.trader.entryPrice}: </span>
                             <span className="font-mono text-text-primary">{formatUSD(position.entry_price)}</span>
                           </div>
                           <div>
-                            <span className="text-text-tertiary">现价: </span>
+                            <span className="text-text-tertiary">{t.trader.currentPrice}: </span>
                             <span className="font-mono text-text-primary">{formatUSD(position.mark_price)}</span>
                           </div>
                           <div>
-                            <span className="text-text-tertiary">杠杆: </span>
+                            <span className="text-text-tertiary">{t.trader.leverage}: </span>
                             <span className="font-semibold text-primary">{position.leverage}x</span>
                           </div>
                         </div>
