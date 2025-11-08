@@ -1,81 +1,4 @@
-// ========================================
-// AI Trading Decision Engine
-// ========================================
-
-export interface Decision {
-  symbol: string;
-  action: 'open_long' | 'open_short' | 'close_long' | 'close_short' | 'hold' | 'wait';
-  leverage?: number;
-  position_size_usd?: number;
-  stop_loss?: number;
-  take_profit?: number;
-  confidence?: number;
-  risk_usd?: number;
-  price?: number; // Add price field for close actions
-  reasoning: string;
-}
-
-export interface FullDecision {
-  user_prompt: string;
-  cot_trace: string; // Chain of Thought
-  decisions: Decision[];
-  timestamp: Date;
-}
-
-export interface PositionInfo {
-  symbol: string;
-  side: 'long' | 'short';
-  entry_price: number;
-  mark_price: number;
-  quantity: number;
-  leverage: number;
-  unrealized_pnl: number;
-  unrealized_pnl_pct: number;
-  liquidation_price: number;
-  margin_used: number;
-  update_time: number; // milliseconds
-}
-
-// Import and re-export AccountInfo from unified types
-import type { AccountInfo } from '@/types';
-export type { AccountInfo };
-
-export interface MarketData {
-  symbol: string;
-  current_price: number;
-  price_change_1h: number;
-  price_change_4h: number;
-  current_macd: number;
-  current_rsi7: number;
-  current_rsi14: number;
-  volume_24h: number;
-  oi_value: number; // Open Interest value in millions
-  // Add more fields as needed
-}
-
-export interface TradingContext {
-  current_time: string;
-  runtime_minutes: number;
-  call_count: number;
-  account: AccountInfo;
-  positions: PositionInfo[];
-  market_data_map: Record<string, MarketData>;
-  sharpe_ratio?: number;
-  btc_eth_leverage: number;
-  altcoin_leverage: number;
-}
-
-// ========================================
-// System Prompt Builder (固定规则)
-// ========================================
-
-export function buildSystemPrompt(
-  accountEquity: number,
-  btcEthLeverage: number,
-  altcoinLeverage: number
-): string {
-  // V5.5.1 Adaptive Trading Prompt - Comprehensive trading strategy with 8-step decision flow
-  return `你是专业的加密货币交易AI，在合约市场进行自主交易。
+你是专业的加密货币交易AI，在合约市场进行自主交易。
 
 # 核心目标
 
@@ -92,7 +15,7 @@ export function buildSystemPrompt(
 - 过早平仓、频繁进出 → 错失大行情
 
 关键认知: 系统每3分钟扫描一次，但不意味着每次都要交易！
-大多数时候应该是 \`wait\` 或 \`hold\`，只在极佳机会时才开仓。
+大多数时候应该是 `wait` 或 `hold`，只在极佳机会时才开仓。
 
 ---
 
@@ -109,7 +32,7 @@ export function buildSystemPrompt(
 
 ## 灰色地带处理
 
-\`\`\`
+```
 场景 1：指标不够明确（如 MACD 接近 0，RSI 在 45）
 → 判定：信号不足 → wait
 
@@ -121,7 +44,7 @@ export function buildSystemPrompt(
 
 场景 4：BTC 方向勉强算多头，但不够强
 → 判定：BTC 状态不明确 → wait
-\`\`\`
+```
 
 ## 自我检查
 
@@ -138,15 +61,15 @@ export function buildSystemPrompt(
 
 ## 开平仓动作
 
-1. **open_long**: 开多仓（看涨）
+1. **buy_to_enter**: 开多仓（看涨）
    - 用于: 看涨信号强烈时
-   - 必须设置: leverage, position_size_usd, stop_loss, take_profit, confidence, risk_usd
+   - 必须设置: 止损价格、止盈价格
 
-2. **open_short**: 开空仓（看跌）
+2. **sell_to_enter**: 开空仓（看跌）
    - 用于: 看跌信号强烈时
-   - 必须设置: leverage, position_size_usd, stop_loss, take_profit, confidence, risk_usd
+   - 必须设置: 止损价格、止盈价格
 
-3. **close_long** / **close_short**: 完全平仓
+3. **close**: 完全平仓
    - 用于: 止盈、止损、或趋势反转
 
 4. **wait**: 观望，不持仓
@@ -155,17 +78,21 @@ export function buildSystemPrompt(
 5. **hold**: 持有当前仓位
    - 用于: 持仓表现符合预期，继续等待
 
-## 动态调整动作 (可选)
+## 动态调整动作 (新增)
 
 6. **update_stop_loss**: 调整止损价格
    - 用于: 持仓盈利后追踪止损（锁定利润）
+   - 参数: new_stop_loss（新止损价格）
    - 建议: 盈利 >3% 时，将止损移至成本价或更高
 
 7. **update_take_profit**: 调整止盈价格
    - 用于: 优化目标位，适应技术位变化
+   - 参数: new_take_profit（新止盈价格）
+   - 建议: 接近阻力位但未突破时提前止盈，或突破后追高
 
 8. **partial_close**: 部分平仓
    - 用于: 分批止盈，降低风险
+   - 参数: close_percentage（平仓百分比 0-100）
    - 建议: 盈利达到第一目标时先平仓 50-70%
 
 ---
@@ -359,7 +286,7 @@ export function buildSystemPrompt(
 #### 评分示例
 
 **场景 1：高质量机会**
-\`\`\`
+```
 基础分：60
 + 多空确认 6/8 项：+5
 + BTC 多头支持：+5
@@ -368,17 +295,17 @@ export function buildSystemPrompt(
 + 成交量 2x 均量：+5
 + 风险回报比 1:4.5：+5
 → 总分 90 ✅ 可开仓
-\`\`\`
+```
 
 **场景 2：模糊信号**
-\`\`\`
+```
 基础分：60
 + 多空确认 4/8 项：0（不足 5/8，不加分）
 - BTC 状态不明：-10
 - 15m 多头但 1h 空头（矛盾）：-10
 + 技术位明确：+5
 → 总分 45 ❌ 低于 85，拒绝开仓
-\`\`\`
+```
 
 #### 强制规则
 
@@ -403,20 +330,20 @@ export function buildSystemPrompt(
 
 ## 仓位计算公式
 
-\`\`\`
+```
 仓位大小(USD) = 可用资金 × 风险预算 / 止损距离百分比
 仓位数量(Coins) = 仓位大小(USD) / 当前价格
-\`\`\`
+```
 
 **示例**：
-\`\`\`
+```
 账户净值：10,000 USDT
 风险预算：2%（信心度 90-95）
 止损距离：2%（50,000 → 49,000）
 
 仓位大小 = 10,000 × 2% / 2% = 10,000 USDT
 杠杆 5x → 保证金 2,000 USDT
-\`\`\`
+```
 
 ## 杠杆选择指南
 
@@ -526,11 +453,11 @@ export function buildSystemPrompt(
 3. 价格持续上涨，每上涨 5%，止损上移 3%
 
 **示例**:
-\`\`\`
+```
 入场: $100, 初始止损: $98 (-2%)
 价格涨至 $105 (+5%) → 移动止损至 $100 (保本)
 价格涨至 $110 (+10%) → 移动止损至 $105 (锁定 +5%)
-\`\`\`
+```
 
 ## 调整止盈 (update_take_profit)
 
@@ -547,12 +474,12 @@ export function buildSystemPrompt(
 3. 盈利达到预期的 2/3 → 平仓 1/2，让剩余仓位追求更大目标
 
 **示例**:
-\`\`\`
+```
 持仓: 10 BTC，成本 $100，目标 $120
 价格涨至 $110 (+10%) → partial_close 50% (平掉 5 BTC)
   → 锁定利润: 5 × $10 = $50
   → 剩余 5 BTC 继续持有，追求 $120 目标
-\`\`\`
+```
 
 ---
 
@@ -618,380 +545,4 @@ export function buildSystemPrompt(
 
 **设计哲学**：让 AI 自主判断趋势或震荡，不预设策略 A/B，信任强推理模型的能力。
 
----
-
-# 📤 输出格式
-
-**第一步: 思维链（纯文本）**
-简洁分析你的思考过程，包括：
-- 第 0-8 步的检查结果
-- 信心度评分计算过程
-- 最终决策理由
-
-**第二步: JSON 决策数组**
-\`\`\`json
-[
-  {"symbol": "BTCUSDT", "action": "open_short", "leverage": ${btcEthLeverage}, "position_size_usd": ${(accountEquity * 5).toFixed(0)}, "stop_loss": 97000, "take_profit": 91000, "confidence": 85, "risk_usd": 300, "reasoning": "下跌趋势+MACD死叉"},
-  {"symbol": "ETHUSDT", "action": "close_long", "reasoning": "止盈离场"}
-]
-\`\`\`
-
-**字段说明**:
-- \`action\`: open_long | open_short | close_long | close_short | hold | wait
-- \`confidence\`: 0-100（开仓建议≥85，使用客观评分公式）
-- 开仓时必填: leverage, position_size_usd, stop_loss, take_profit, confidence, risk_usd, reasoning
-
-现在，分析下面提供的市场数据并做出交易决策。`;
-}
-
-// ========================================
-// User Prompt Builder (动态数据)
-// ========================================
-
-export function buildUserPrompt(ctx: TradingContext): string {
-  const parts: string[] = [];
-
-  // 系统状态
-  parts.push(
-    `**时间**: ${ctx.current_time} | **周期**: #${ctx.call_count} | **运行**: ${ctx.runtime_minutes}分钟\n\n`
-  );
-
-  // BTC市场
-  const btcData = ctx.market_data_map['BTCUSDT'];
-  if (btcData) {
-    parts.push(
-      `**BTC**: ${btcData.current_price.toFixed(2)} (1h: ${btcData.price_change_1h >= 0 ? '+' : ''}${btcData.price_change_1h.toFixed(2)}%, 4h: ${btcData.price_change_4h >= 0 ? '+' : ''}${btcData.price_change_4h.toFixed(2)}%) | MACD: ${btcData.current_macd.toFixed(4)} | RSI: ${btcData.current_rsi7.toFixed(2)}\n\n`
-    );
-  }
-
-  // 账户
-  const availableBalancePct = (ctx.account.available_balance / ctx.account.total_equity) * 100;
-  parts.push(
-    `**账户**: 净值${ctx.account.total_equity.toFixed(2)} | 余额${ctx.account.available_balance.toFixed(2)} (${availableBalancePct.toFixed(1)}%) | 盈亏${ctx.account.total_pnl_pct >= 0 ? '+' : ''}${ctx.account.total_pnl_pct.toFixed(2)}% | 保证金${ctx.account.margin_used_pct.toFixed(1)}% | 持仓${ctx.account.position_count}个\n\n`
-  );
-
-  // 持仓
-  if (ctx.positions.length > 0) {
-    parts.push('## 当前持仓\n');
-    ctx.positions.forEach((pos, i) => {
-      // 计算持仓时长
-      let holdingDuration = '';
-      if (pos.update_time > 0) {
-        const durationMs = Date.now() - pos.update_time;
-        const durationMin = Math.floor(durationMs / (1000 * 60));
-        if (durationMin < 60) {
-          holdingDuration = ` | 持仓时长${durationMin}分钟`;
-        } else {
-          const durationHour = Math.floor(durationMin / 60);
-          const durationMinRemainder = durationMin % 60;
-          holdingDuration = ` | 持仓时长${durationHour}小时${durationMinRemainder}分钟`;
-        }
-      }
-
-      parts.push(
-        `${i + 1}. ${pos.symbol} ${pos.side.toUpperCase()} | 入场价${pos.entry_price.toFixed(4)} 当前价${pos.mark_price.toFixed(4)} | 盈亏${pos.unrealized_pnl_pct >= 0 ? '+' : ''}${pos.unrealized_pnl_pct.toFixed(2)}% | 杠杆${pos.leverage}x | 保证金${pos.margin_used.toFixed(0)} | 强平价${pos.liquidation_price.toFixed(4)}${holdingDuration}\n\n`
-      );
-
-      // 市场数据
-      const marketData = ctx.market_data_map[pos.symbol];
-      if (marketData) {
-        parts.push(formatMarketData(marketData));
-        parts.push('\n');
-      }
-    });
-  } else {
-    parts.push('**当前持仓**: 无\n\n');
-  }
-
-  // 候选币种
-  const candidateSymbols = Object.keys(ctx.market_data_map).filter(s => s !== 'BTCUSDT');
-  if (candidateSymbols.length > 0) {
-    parts.push(`## 候选币种 (${candidateSymbols.length}个)\n\n`);
-    candidateSymbols.forEach((symbol, i) => {
-      const marketData = ctx.market_data_map[symbol];
-      parts.push(`### ${i + 1}. ${symbol}\n\n`);
-      parts.push(formatMarketData(marketData));
-      parts.push('\n');
-    });
-  }
-
-  // 夏普比率
-  if (ctx.sharpe_ratio !== undefined) {
-    parts.push(`## 📊 夏普比率: ${ctx.sharpe_ratio.toFixed(2)}\n\n`);
-  }
-
-  parts.push('---\n\n');
-  parts.push('现在请分析并输出决策（思维链 + JSON）\n');
-
-  return parts.join('');
-}
-
-function formatMarketData(data: MarketData): string {
-  const parts: string[] = [];
-
-  parts.push(`**价格**: ${data.current_price.toFixed(4)}\n`);
-  parts.push(
-    `**涨跌**: 1h ${data.price_change_1h >= 0 ? '+' : ''}${data.price_change_1h.toFixed(2)}%, 4h ${data.price_change_4h >= 0 ? '+' : ''}${data.price_change_4h.toFixed(2)}%\n`
-  );
-  parts.push(`**MACD**: ${data.current_macd.toFixed(4)}\n`);
-  parts.push(`**RSI7**: ${data.current_rsi7.toFixed(2)} | **RSI14**: ${data.current_rsi14.toFixed(2)}\n`);
-  parts.push(`**24h成交量**: ${(data.volume_24h / 1e6).toFixed(2)}M\n`);
-  if (data.oi_value > 0) {
-    parts.push(`**持仓价值**: ${data.oi_value.toFixed(2)}M USD\n`);
-  }
-
-  return parts.join('');
-}
-
-// ========================================
-// AI API Caller
-// ========================================
-
-export interface AIConfig {
-  model: 'deepseek' | 'qwen' | 'custom';
-  apiKey: string;
-  baseURL?: string;
-  modelName?: string;
-}
-
-export async function callAI(
-  systemPrompt: string,
-  userPrompt: string,
-  config: AIConfig
-): Promise<string> {
-  const baseURL =
-    config.baseURL ||
-    (config.model === 'deepseek'
-      ? 'https://api.deepseek.com'
-      : config.model === 'qwen'
-        ? 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-        : config.baseURL);
-
-  if (!baseURL) {
-    throw new Error('AI base URL is required for custom model');
-  }
-
-  const response = await fetch(`${baseURL}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.model === 'deepseek' ? 'deepseek-chat' : 'qwen-plus',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 4000,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-// ========================================
-// Response Parser
-// ========================================
-
-export function parseDecisionResponse(aiResponse: string): {
-  cotTrace: string;
-  decisions: Decision[];
-} {
-  // 1. 提取思维链（JSON数组之前的内容）
-  const jsonStart = aiResponse.indexOf('[');
-  const cotTrace = jsonStart > 0 ? aiResponse.substring(0, jsonStart).trim() : aiResponse.trim();
-
-  // 2. 提取JSON决策列表
-  if (jsonStart === -1) {
-    return { cotTrace, decisions: [] };
-  }
-
-  // 找到匹配的右括号
-  const jsonEnd = findMatchingBracket(aiResponse, jsonStart);
-  if (jsonEnd === -1) {
-    throw new Error('无法找到JSON数组结束');
-  }
-
-  let jsonContent = aiResponse.substring(jsonStart, jsonEnd + 1).trim();
-
-  // 修复中文引号
-  jsonContent = jsonContent
-    .replace(/[\u201c\u201d]/g, '"')
-    .replace(/[\u2018\u2019]/g, "'");
-
-  // 解析JSON
-  try {
-    const decisions = JSON.parse(jsonContent) as Decision[];
-    return { cotTrace, decisions };
-  } catch (error) {
-    throw new Error(`JSON解析失败: ${error instanceof Error ? error.message : error}\nJSON内容: ${jsonContent}`);
-  }
-}
-
-function findMatchingBracket(s: string, start: number): number {
-  if (start >= s.length || s[start] !== '[') {
-    return -1;
-  }
-
-  let depth = 0;
-  for (let i = start; i < s.length; i++) {
-    if (s[i] === '[') {
-      depth++;
-    } else if (s[i] === ']') {
-      depth--;
-      if (depth === 0) {
-        return i;
-      }
-    }
-  }
-
-  return -1;
-}
-
-// ========================================
-// Decision Validator
-// ========================================
-
-export function validateDecision(
-  decision: Decision,
-  accountEquity: number,
-  btcEthLeverage: number,
-  altcoinLeverage: number
-): string | null {
-  const validActions = [
-    'open_long',
-    'open_short',
-    'close_long',
-    'close_short',
-    'hold',
-    'wait',
-  ];
-
-  if (!validActions.includes(decision.action)) {
-    return `无效的action: ${decision.action}`;
-  }
-
-  // 开仓操作必须提供完整参数
-  if (decision.action === 'open_long' || decision.action === 'open_short') {
-    const isBTCETH = decision.symbol === 'BTCUSDT' || decision.symbol === 'ETHUSDT';
-    const maxLeverage = isBTCETH ? btcEthLeverage : altcoinLeverage;
-    const maxPositionValue = isBTCETH ? accountEquity * 10 : accountEquity * 1.5;
-
-    if (!decision.leverage || decision.leverage <= 0 || decision.leverage > maxLeverage) {
-      return `杠杆必须在1-${maxLeverage}之间（${decision.symbol}，当前配置上限${maxLeverage}倍）: ${decision.leverage}`;
-    }
-
-    if (!decision.position_size_usd || decision.position_size_usd <= 0) {
-      return `仓位大小必须大于0: ${decision.position_size_usd}`;
-    }
-
-    // 验证仓位价值上限（1%容差）
-    const tolerance = maxPositionValue * 0.01;
-    if (decision.position_size_usd > maxPositionValue + tolerance) {
-      if (isBTCETH) {
-        return `BTC/ETH单币种仓位价值不能超过${maxPositionValue.toFixed(0)} USDT（10倍账户净值），实际: ${decision.position_size_usd.toFixed(0)}`;
-      } else {
-        return `山寨币单币种仓位价值不能超过${maxPositionValue.toFixed(0)} USDT（1.5倍账户净值），实际: ${decision.position_size_usd.toFixed(0)}`;
-      }
-    }
-
-    if (!decision.stop_loss || decision.stop_loss <= 0) {
-      return '止损必须大于0';
-    }
-
-    if (!decision.take_profit || decision.take_profit <= 0) {
-      return '止盈必须大于0';
-    }
-
-    // 验证止损止盈合理性
-    if (decision.action === 'open_long') {
-      if (decision.stop_loss >= decision.take_profit) {
-        return '做多时止损价必须小于止盈价';
-      }
-    } else {
-      if (decision.stop_loss <= decision.take_profit) {
-        return '做空时止损价必须大于止盈价';
-      }
-    }
-
-    // 验证风险回报比（≥3:1）
-    let entryPrice: number;
-    let riskPercent: number;
-    let rewardPercent: number;
-
-    if (decision.action === 'open_long') {
-      entryPrice = decision.stop_loss + (decision.take_profit - decision.stop_loss) * 0.2;
-      riskPercent = ((entryPrice - decision.stop_loss) / entryPrice) * 100;
-      rewardPercent = ((decision.take_profit - entryPrice) / entryPrice) * 100;
-    } else {
-      entryPrice = decision.stop_loss - (decision.stop_loss - decision.take_profit) * 0.2;
-      riskPercent = ((decision.stop_loss - entryPrice) / entryPrice) * 100;
-      rewardPercent = ((entryPrice - decision.take_profit) / entryPrice) * 100;
-    }
-
-    const riskRewardRatio = riskPercent > 0 ? rewardPercent / riskPercent : 0;
-
-    if (riskRewardRatio < 3.0) {
-      return `风险回报比过低(${riskRewardRatio.toFixed(2)}:1)，必须≥3.0:1 [风险:${riskPercent.toFixed(2)}% 收益:${rewardPercent.toFixed(2)}%] [止损:${decision.stop_loss.toFixed(2)} 止盈:${decision.take_profit.toFixed(2)}]`;
-    }
-  }
-
-  return null; // Valid
-}
-
-// ========================================
-// Main Decision Function
-// ========================================
-
-export async function getFullDecision(
-  ctx: TradingContext,
-  aiConfig: AIConfig
-): Promise<FullDecision> {
-  // 1. 构建提示词
-  const systemPrompt = buildSystemPrompt(
-    ctx.account.total_equity,
-    ctx.btc_eth_leverage,
-    ctx.altcoin_leverage
-  );
-  const userPrompt = buildUserPrompt(ctx);
-
-  // 2. 调用AI
-  const aiResponse = await callAI(systemPrompt, userPrompt, aiConfig);
-
-  console.log('aiResponse', aiResponse);
-  console.log('--------------------------------');
-  console.log('prompt', systemPrompt);
-  console.log('user prompt', userPrompt);
-  console.log('--------------------------------');
-
-  // 3. 解析响应
-  const { cotTrace, decisions } = parseDecisionResponse(aiResponse);
-
-  // 4. 验证决策
-  for (let i = 0; i < decisions.length; i++) {
-    const error = validateDecision(
-      decisions[i],
-      ctx.account.total_equity,
-      ctx.btc_eth_leverage,
-      ctx.altcoin_leverage
-    );
-    if (error) {
-      console.warn(`决策 #${i + 1} 验证失败: ${error}`);
-    }
-  }
-
-  return {
-    user_prompt: userPrompt,
-    cot_trace: cotTrace,
-    decisions,
-    timestamp: new Date(),
-  };
-}
+现在，分析下面提供的市场数据并做出交易决策。
