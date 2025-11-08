@@ -236,9 +236,12 @@ export class TradingEngine {
       available_balance: balance.availableBalance,
       total_pnl: totalPnl,
       total_pnl_pct: totalPnlPct,
+      total_unrealized_pnl: balance.totalUnrealizedProfit,
       margin_used: marginUsed,
       margin_used_pct: marginUsedPct,
       position_count: positions.length,
+      initial_balance: this.config.initialBalance,
+      daily_pnl: 0, // TODO: Calculate daily PnL from decision logs
     };
 
     // Get runtime
@@ -558,9 +561,12 @@ export class TradingEngine {
       available_balance: balance.availableBalance,
       total_pnl: totalPnl,
       total_pnl_pct: totalPnlPct,
+      total_unrealized_pnl: balance.totalUnrealizedProfit,
       margin_used: marginUsed,
       margin_used_pct: marginUsedPct,
       position_count: positions.length,
+      initial_balance: this.config.initialBalance,
+      daily_pnl: 0, // TODO: Calculate daily PnL from decision logs
     };
   }
 

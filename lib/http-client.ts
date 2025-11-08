@@ -43,6 +43,7 @@ export const fetchWithProxy = async (
 
     try {
       // Use undici fetch with proxy agent
+      // @ts-expect-error - undici Response type doesn't fully overlap with browser Response
       return (await undiciFetch(url, {
         ...options,
         // @ts-ignore - undici specific option

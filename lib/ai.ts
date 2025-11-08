@@ -287,6 +287,7 @@ export interface AIConfig {
   model: 'deepseek' | 'qwen' | 'custom';
   apiKey: string;
   baseURL?: string;
+  modelName?: string;
 }
 
 export async function callAI(

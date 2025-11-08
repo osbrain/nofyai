@@ -54,10 +54,10 @@ export async function GET(request: NextRequest) {
         }
 
         // Add AI model-specific fields
-        if (trader.ai_model === 'deepseek' && trader.deepseek_api_key) {
-          masked.deepseek_api_key_masked = `${trader.deepseek_api_key.substring(0, 4)}...${trader.deepseek_api_key.slice(-4)}`;
-        } else if (trader.ai_model === 'qwen' && trader.qwen_api_key) {
-          masked.qwen_api_key_masked = `${trader.qwen_api_key.substring(0, 4)}...${trader.qwen_api_key.slice(-4)}`;
+        if (trader.ai_model === 'deepseek' && trader.deepseek_key) {
+          masked.deepseek_key_masked = `${trader.deepseek_key.substring(0, 4)}...${trader.deepseek_key.slice(-4)}`;
+        } else if (trader.ai_model === 'qwen' && trader.qwen_key) {
+          masked.qwen_key_masked = `${trader.qwen_key.substring(0, 4)}...${trader.qwen_key.slice(-4)}`;
         } else if (trader.ai_model === 'custom') {
           masked.custom_api_url = trader.custom_api_url;
           masked.custom_model_name = trader.custom_model_name;

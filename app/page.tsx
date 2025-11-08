@@ -1,98 +1,107 @@
 'use client';
 
-import { CompetitionPage } from '@/components/competition/CompetitionPage';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import Link from 'next/link';
+import { TraderDetailView } from '@/components/trader/TraderDetailView';
 import { useTranslations } from '@/lib/i18n-context';
+import { Badge } from '@/components/ui/badge';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { MaskedTraderConfig } from '@/types';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function HomePage() {
   const t = useTranslations();
+  const { data: config, error } = useSWR('/api/config', fetcher);
+  const [selectedTraderId, setSelectedTraderId] = useState<string | null>(null);
+
+  // Set the first trader as selected by default
+  useEffect(() => {
+    if (config?.traders && config.traders.length > 0 && !selectedTraderId) {
+      setSelectedTraderId(config.traders[0].id);
+    }
+  }, [config, selectedTraderId]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="text-danger font-semibold">Failed to load configuration</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="w-full px-6 py-8">
+        <SkeletonCard />
+      </div>
+    );
+  }
+
+  const traders: MaskedTraderConfig[] = config.traders || [];
+  const hasTraders = traders.length > 0;
+  const hasSingleTrader = traders.length === 1;
+  const currentTrader = traders.find(t => t.id === selectedTraderId);
 
   return (
-    <div className="min-h-screen bg-background-secondary">
-      {/* Header - Full width, fixed */}
-      <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
-        <div className="w-full px-6">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center text-2xl shadow-lg">
-                ⚡
+    <div className="w-full px-6 py-8">
+      {hasTraders ? (
+        <>
+          {/* Trader Tabs - Only show if multiple traders */}
+          {!hasSingleTrader && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                {traders.map((trader) => (
+                  <button
+                    key={trader.id}
+                    onClick={() => setSelectedTraderId(trader.id)}
+                    className={`px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
+                      selectedTraderId === trader.id
+                        ? 'bg-gradient-to-r from-primary to-accent-purple text-white shadow-lg'
+                        : 'bg-white text-text-secondary hover:bg-background-secondary border border-border'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>🤖</span>
+                      <span>{trader.name}</span>
+                      {trader.enabled && (
+                        <Badge variant="success" className="ml-1">
+                          {t.config.enabled}
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-primary">
-                  NofyAI
-                </h1>
-                <p className="text-xs text-text-secondary">
-                  AI Trading System
-                </p>
-              </div>
             </div>
+          )}
 
-            {/* Navigation */}
-            <div className="flex items-center gap-4">
-              <nav className="hidden md:flex items-center gap-6">
-                <a href="/" className="text-sm font-medium text-primary transition-colors">
-                  {t.nav.competition}
-                </a>
-                <a href="#" className="text-sm font-medium text-text-secondary hover:text-primary transition-colors">
-                  {t.nav.analytics}
-                </a>
-                <a href="#" className="text-sm font-medium text-text-secondary hover:text-primary transition-colors">
-                  {t.nav.documentation}
-                </a>
-              </nav>
-
-              {/* Language Switcher */}
-              <LanguageSwitcher />
-
-              {/* GitHub Link */}
-              <a
-                href=""
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-text-secondary hover:text-primary hover:bg-background-secondary transition-all"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                </svg>
-                <span>{t.nav.github}</span>
-              </a>
-            </div>
-          </div>
+          {/* Trader Detail View */}
+          {selectedTraderId && currentTrader && (
+            <TraderDetailView traderId={selectedTraderId} showHeader={true} />
+          )}
+        </>
+      ) : (
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">🤖</div>
+          <h2 className="text-2xl font-bold text-text-primary mb-2">
+            {t.competition.noTradersActive}
+          </h2>
+          <p className="text-text-secondary mb-6">
+            {t.competition.startBackend}
+          </p>
+          <Link
+            href="/config"
+            className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+          >
+            {t.competition.config}
+          </Link>
         </div>
-      </header>
-
-      {/* Main Content - Full width on desktop */}
-      <main className="w-full px-6 py-8">
-        <CompetitionPage />
-      </main>
-
-      {/* Footer */}
-      <footer className="mt-16 border-t border-border bg-white">
-        <div className="w-full px-6 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <p className="text-text-secondary text-sm">
-                NofyAI - AI-Powered Algorithmic Trading Operating System
-              </p>
-              <p className="text-text-tertiary text-xs mt-1">
-                ⚠️ AI automated trading carries risk. Use small amounts for testing.
-              </p>
-            </div>
-            <div className="flex items-center gap-6">
-              <a href="" target="_blank" rel="noopener noreferrer" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                {t.nav.github}
-              </a>
-              <a href="#" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                {t.nav.documentation}
-              </a>
-              <a href="/api" className="text-sm text-text-secondary hover:text-primary transition-colors">
-                {t.nav.api}
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      )}
     </div>
   );
 }

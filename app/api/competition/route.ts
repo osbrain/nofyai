@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
           return {
             trader_id: status.trader_id,
             trader_name: status.trader_name,
-            ai_model: 'unknown',
+            ai_model: status.ai_model,
             total_equity: 0,
             available_balance: 0,
             total_pnl: 0,
@@ -29,12 +29,11 @@ export async function GET(request: NextRequest) {
 
         try {
           const account = await trader.getCurrentAccount();
-          const traderInfo = trader.getTraderInfo();
 
           return {
             trader_id: status.trader_id,
             trader_name: status.trader_name,
-            ai_model: traderInfo.ai_model,
+            ai_model: status.ai_model,
             total_equity: account.total_equity,
             available_balance: account.available_balance,
             total_pnl: account.total_pnl,
@@ -48,11 +47,10 @@ export async function GET(request: NextRequest) {
         } catch (error) {
           console.error(`Error fetching account for ${status.trader_id}:`, error);
           // Return fallback data if fetching fails
-          const traderInfo = trader.getTraderInfo();
           return {
             trader_id: status.trader_id,
             trader_name: status.trader_name,
-            ai_model: traderInfo.ai_model,
+            ai_model: status.ai_model,
             total_equity: 0,
             available_balance: 0,
             total_pnl: 0,

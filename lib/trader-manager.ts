@@ -133,7 +133,12 @@ export class TraderManager {
     }> = [];
 
     for (const [traderId, engine] of this.traders.entries()) {
-      const result = {
+      const result: {
+        trader_id: string;
+        stopped: boolean;
+        positions_closed: boolean;
+        error?: string;
+      } = {
         trader_id: traderId,
         stopped: false,
         positions_closed: false,
@@ -198,12 +203,16 @@ export class TraderManager {
   getAllStatus(): Array<{
     trader_id: string;
     trader_name: string;
+    ai_model: string;
+    exchange: string;
     is_running: boolean;
     session: TradingSession;
   }> {
     const statuses: Array<{
       trader_id: string;
       trader_name: string;
+      ai_model: string;
+      exchange: string;
       is_running: boolean;
       session: TradingSession;
     }> = [];
@@ -215,6 +224,8 @@ export class TraderManager {
       statuses.push({
         trader_id: traderId,
         trader_name: traderConfig?.name || traderId,
+        ai_model: traderConfig?.ai_model || 'unknown',
+        exchange: traderConfig?.exchange || 'unknown',
         is_running: session.isRunning,
         session,
       });

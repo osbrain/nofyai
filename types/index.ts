@@ -252,3 +252,66 @@ export interface MaskedTraderConfig extends Omit<TraderConfig,
 export interface MaskedSystemConfig extends Omit<SystemConfig, 'traders'> {
   traders: MaskedTraderConfig[];
 }
+
+// Competition Summary Types
+
+// Single trader summary for leaderboard
+export interface TraderSummary {
+  trader_id: string;
+  trader_name: string;
+  ai_model: string;
+  exchange: string;
+  total_equity: number;
+  initial_balance: number;
+  total_pnl: number;
+  total_pnl_pct: number;
+  unrealized_pnl: number;
+  position_count: number;
+  is_running: boolean;
+  sharpe_ratio: number;
+  win_rate: number;
+  total_trades: number;
+  max_drawdown: number;
+  ranking: number;
+}
+
+// Top performer info
+export interface TopPerformer {
+  trader_id: string;
+  trader_name: string;
+  ai_model: string;
+  total_equity: number;
+  total_pnl_pct: number;
+}
+
+// Competition summary response
+export interface CompetitionSummary {
+  total_traders: number;
+  active_traders: number;
+  total_equity: number;
+  total_pnl: number;
+  total_trades: number;
+  highest_performer: TopPerformer | null;
+  lowest_performer: TopPerformer | null;
+  leaderboard: TraderSummary[];
+  last_updated: string;
+}
+
+// Multi-trader equity history (for comparison chart)
+export interface MultiTraderEquityHistory {
+  traders: Array<{
+    trader_id: string;
+    trader_name: string;
+    ai_model: string;
+    color: string; // Chart line color
+    data: EquityPoint[];
+  }>;
+}
+
+// Market price ticker data
+export interface MarketPrice {
+  symbol: string;
+  price: number;
+  change_24h: number;
+  change_24h_pct: number;
+}

@@ -171,7 +171,6 @@ export const enUS: Locale = {
     runtimeLabel: 'Runtime',
     free: 'free',
     lev: 'Lev',
-    actions: 'action(s)',
     currentPositions: 'Current Positions',
     loadingPerformance: 'Loading performance data...',
     close: 'Close',
@@ -216,6 +215,7 @@ export const enUS: Locale = {
     roi: 'ROI',
     equity: 'Equity',
     totalEquity: 'Total Equity',
+    totalTrades: 'Total Trades',
     sharpeRatio: 'Sharpe',
     status: 'Status',
     viewDetails: 'View Details',
@@ -305,5 +305,10 @@ export const enUS: Locale = {
     customApiUrl: 'Custom API URL',
     modelName: 'Model Name',
     apiKeysMasked: 'API keys are masked for security (showing first/last 4 characters only)',
+  },
+
+  footer: {
+    description: 'NofyAI - AI-Powered Algorithmic Trading Operating System',
+    riskWarning: '⚠️ AI automated trading carries risk. Use small amounts for testing.',
   },
 };

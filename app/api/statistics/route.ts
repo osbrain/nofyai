@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTraderManager } from '@/lib/trader-manager';
+import type { AIDecision } from '@/types';
 
 /**
  * GET /api/statistics
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Count position actions
-      decision.decisions.forEach(d => {
+      decision.decisions.forEach((d: AIDecision) => {
         if (d.action === 'open_long' || d.action === 'open_short') {
           totalOpenPositions++;
         } else if (d.action === 'close_long' || d.action === 'close_short') {

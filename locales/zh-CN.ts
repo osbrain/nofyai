@@ -169,7 +169,6 @@ export const zhCN = {
     runtimeLabel: '运行时长',
     free: '可用',
     lev: '杠杆',
-    actions: '操作数',
     currentPositions: '当前持仓',
     loadingPerformance: '加载性能数据中...',
     close: '关闭',
@@ -214,6 +213,7 @@ export const zhCN = {
     roi: '回报率',
     equity: '权益',
     totalEquity: '总权益',
+    totalTrades: '总交易数',
     sharpeRatio: '夏普',
     status: '状态',
     viewDetails: '查看详情',
@@ -304,6 +304,11 @@ export const zhCN = {
     modelName: '模型名称',
     apiKeysMasked: 'API 密钥已脱敏（仅显示前后4个字符）',
   },
-} as const;
+
+  footer: {
+    description: 'NofyAI - AI 驱动的算法交易操作系统',
+    riskWarning: '⚠️ AI 自动交易存在风险，请使用少量资金进行测试。',
+  },
+};
 
 export type Locale = typeof zhCN;

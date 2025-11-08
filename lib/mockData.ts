@@ -119,29 +119,33 @@ export const mockDecisions: DecisionRecord[] = [
   {
     timestamp: new Date(Date.now() - 180000).toISOString(),
     cycle_number: 156,
+    trader_id: 'mock-trader-1',
+    success: true,
     input_prompt: 'Market analysis for cycle 156...',
     cot_trace: '分析当前市场状态：BTC在42000-42500区间震荡，成交量适中，RSI处于55水平，显示中性偏多信号。ETH相对弱势，建议保持观望或小仓位做空。',
     decision_json: JSON.stringify([
       { action: 'hold', symbol: 'BTCUSDT', confidence: 0.75 },
       { action: 'open_short', symbol: 'ETHUSDT', quantity: 2.5, leverage: 3, confidence: 0.82 },
     ]),
-    account_state: {
-      total_balance: 10250.50,
+    account_snapshot: {
+      total_equity: 10250.50,
       available_balance: 6637.82,
-      total_unrealized_profit: 85.30,
-      position_count: 2,
+      total_pnl: 85.30,
+      total_pnl_pct: 0.83,
+      margin_used: 3612.68,
       margin_used_pct: 35.2,
+      position_count: 2,
     },
-    positions: [
+    positions_snapshot: [
       {
         symbol: 'BTCUSDT',
         side: 'long',
-        position_amt: 0.05,
         entry_price: 42150.50,
         mark_price: 42485.20,
-        unrealized_profit: 55.30,
+        quantity: 0.05,
         leverage: 5,
-        liquidation_price: 33720.40,
+        unrealized_pnl: 55.30,
+        unrealized_pnl_pct: 2.61,
       },
     ],
     candidate_coins: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT'],
@@ -149,13 +153,14 @@ export const mockDecisions: DecisionRecord[] = [
       {
         action: 'open_short',
         symbol: 'ETHUSDT',
-        quantity: 2.5,
-        leverage: 3,
-        price: 2250.80,
-        order_id: 123456789,
-        timestamp: new Date(Date.now() - 180000).toISOString(),
+        reasoning: 'Technical indicators suggest a short opportunity at current levels with favorable risk/reward ratio',
+      },
+    ],
+    execution_results: [
+      {
+        symbol: 'ETHUSDT',
+        action: 'open_short',
         success: true,
-        error: '',
       },
     ],
     execution_log: [
@@ -163,7 +168,6 @@ export const mockDecisions: DecisionRecord[] = [
       '✓ 设置止损价格: 2340.00',
       '✓ 设置止盈价格: 2180.00',
     ],
-    success: true,
     error_message: '',
   },
 ];
