@@ -271,12 +271,8 @@ export const zhCN = {
     sendTestNotification: '发送测试通知',
     testSuccess: '成功！',
     testFailed: '失败',
-    needHelpSetting: '需要设置帮助？',
-    checkoutTelegramGuide: '查看完整的 Telegram 设置指南',
-    viewGuide: '查看指南',
     telegramNotificationsDisabled: 'Telegram 通知已禁用',
     enableTelegramInConfig: '在 config.json 中启用 Telegram 通知以接收实时交易提醒',
-    setupGuide: '设置指南',
     telegramNotConfigured: 'Telegram 未配置',
     addTelegramToConfig: '在 config.json 中添加 Telegram 配置以启用通知',
 

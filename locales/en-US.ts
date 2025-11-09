@@ -273,12 +273,8 @@ export const enUS: Locale = {
     sendTestNotification: 'Send Test Notification',
     testSuccess: 'Success!',
     testFailed: 'Failed',
-    needHelpSetting: 'Need Help Setting Up?',
-    checkoutTelegramGuide: 'Check out the complete Telegram setup guide',
-    viewGuide: 'View Guide',
     telegramNotificationsDisabled: 'Telegram Notifications Disabled',
     enableTelegramInConfig: 'Enable Telegram notifications in config.json to receive real-time trading alerts',
-    setupGuide: 'Setup Guide',
     telegramNotConfigured: 'Telegram Not Configured',
     addTelegramToConfig: 'Add Telegram configuration to config.json to enable notifications',
 

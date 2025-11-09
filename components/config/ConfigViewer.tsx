@@ -273,29 +273,6 @@ export function ConfigViewer() {
                       </div>
                     )}
                   </div>
-
-                  {/* Setup Guide Link */}
-                  <div className="p-4 bg-background-secondary rounded-lg border border-border">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">📖</span>
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-text-primary mb-1">
-                          {t.config.needHelpSetting}
-                        </div>
-                        <div className="text-xs text-text-tertiary">
-                          {t.config.checkoutTelegramGuide}
-                        </div>
-                      </div>
-                      <a
-                        href="/TELEGRAM_SETUP.md"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors font-semibold text-sm"
-                      >
-                        {t.config.viewGuide}
-                      </a>
-                    </div>
-                  </div>
                 </>
               )}
 
@@ -308,15 +285,6 @@ export function ConfigViewer() {
                   <div className="text-xs text-text-tertiary mb-4">
                     {t.config.enableTelegramInConfig}
                   </div>
-                  <a
-                    href="/TELEGRAM_SETUP.md"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
-                  >
-                    <span>📖</span>
-                    <span>{t.config.setupGuide}</span>
-                  </a>
                 </div>
               )}
             </div>
@@ -329,15 +297,6 @@ export function ConfigViewer() {
               <div className="text-xs text-text-tertiary mb-4">
                 {t.config.addTelegramToConfig}
               </div>
-              <a
-                href="/TELEGRAM_SETUP.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm"
-              >
-                <span>📖</span>
-                <span>{t.config.setupGuide}</span>
-              </a>
             </div>
           )}
         </CardContent>
