@@ -2,263 +2,31 @@
 // Binance Market Data Integration
 // ========================================
 
-import { fetchWithProxy } from './http-client';
 import type { MarketData } from './ai';
 import { getOICache } from './oi-cache';
 
-export interface KlineData {
-  openTime: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;        // Base asset volume (e.g., BTC)
-  closeTime: number;
-  quoteVolume: number;   // Quote asset volume (e.g., USDT) - 用于成交量计算
-}
+// Import from modularized market-data package
+import type { KlineData } from './market-data/types';
+import {
+  fetchKlines,
+  fetchOpenInterest,
+  fetchTicker,
+  fetchFundingRate,
+} from './market-data/fetcher';
+import {
+  calculateEMA,
+  calculateMACD,
+  calculateRSI,
+  calculateATR,
+} from './market-data/indicators';
+import {
+  calculateEMASeries,
+  calculateMACDSeries,
+  calculateRSISeries,
+} from './market-data/time-series';
 
-const BINANCE_BASE_URL = 'https://fapi.binance.com';
-
-// ========================================
-// Binance API Functions
-// ========================================
-
-async function fetchKlines(
-  symbol: string,
-  interval: string,
-  limit: number,
-  retries: number = 3
-): Promise<KlineData[]> {
-  const url = `${BINANCE_BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      console.log(`[fetchKlines] Attempt ${attempt}/${retries}: ${url}`);
-      const response = await fetchWithProxy(url);
-      console.log(`[fetchKlines] Response status: ${response.status} ${response.statusText}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[fetchKlines] Error response: ${errorText}`);
-
-        // If not last attempt, wait and retry
-        if (attempt < retries) {
-          const delay = attempt * 1000; // 1s, 2s, 3s
-          console.log(`[fetchKlines] Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-
-        throw new Error(`Failed to fetch klines for ${symbol}: ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log(`[fetchKlines] ✅ Received ${data.length} candles for ${symbol} ${interval}`);
-
-      return data.map((k: any) => ({
-        openTime: k[0],
-        open: parseFloat(k[1]),
-        high: parseFloat(k[2]),
-        low: parseFloat(k[3]),
-        close: parseFloat(k[4]),
-        volume: parseFloat(k[5]),       // Base asset volume (BTC)
-        closeTime: k[6],
-        quoteVolume: parseFloat(k[7]),  // Quote asset volume (USDT) - 重要！
-      }));
-    } catch (error) {
-      console.error(`[fetchKlines] ❌ Attempt ${attempt}/${retries} failed:`, error);
-
-      // If not last attempt, wait and retry
-      if (attempt < retries) {
-        const delay = attempt * 1000;
-        console.log(`[fetchKlines] Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        // Last attempt failed, throw error
-        throw error;
-      }
-    }
-  }
-
-  // Should never reach here, but TypeScript needs it
-  throw new Error(`Failed to fetch klines after ${retries} attempts`);
-}
-
-async function fetchOpenInterest(symbol: string): Promise<{ current: number; change_pct: number }> {
-  try {
-    const url = `${BINANCE_BASE_URL}/fapi/v1/openInterest?symbol=${symbol}`;
-    const response = await fetchWithProxy(url);
-    if (!response.ok) return { current: 0, change_pct: 0 };
-
-    const data = await response.json();
-    const oiQuantity = parseFloat(data.openInterest);
-
-    // Get current price to calculate OI value
-    const ticker = await fetchTicker(symbol);
-    const oiValue = (oiQuantity * ticker.lastPrice) / 1_000_000; // Convert to millions
-
-    // 使用OI缓存计算变化率（对比4小时前）
-    const oiCache = getOICache();
-    const oiChangePct = oiCache.calculateChange(symbol, oiValue, 4);
-
-    // 保存当前OI到缓存
-    oiCache.addRecord(symbol, oiValue, oiQuantity);
-
-    const recordCount = oiCache.getRecordCount(symbol);
-    if (recordCount > 1) {
-      console.log(
-        `[OI] ${symbol}: ${oiValue.toFixed(2)}M USD, 4h change: ${oiChangePct >= 0 ? '+' : ''}${oiChangePct.toFixed(2)}% (${recordCount} cached)`
-      );
-    }
-
-    return {
-      current: oiValue,
-      change_pct: oiChangePct,
-    };
-  } catch (error) {
-    console.warn(`Failed to fetch OI for ${symbol}:`, error);
-    return { current: 0, change_pct: 0 };
-  }
-}
-
-async function fetchTicker(symbol: string): Promise<{ lastPrice: number; volume: number; buySellRatio: number }> {
-  const url = `${BINANCE_BASE_URL}/fapi/v1/ticker/24hr?symbol=${symbol}`;
-  const response = await fetchWithProxy(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ticker for ${symbol}: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  // Calculate Buy/Sell Ratio
-  // BuySellRatio = 主动买入量 / 总成交量
-  // 范围 0-1: >0.5 买方强, <0.5 卖方强
-  const totalVolume = parseFloat(data.quoteVolume) || 1; // 防止除以0
-  const buyVolume = parseFloat(data.takerBuyQuoteAssetVolume) || 0;
-  const buySellRatio = totalVolume > 0 ? buyVolume / totalVolume : 0.5;
-
-  return {
-    lastPrice: parseFloat(data.lastPrice),
-    volume: totalVolume,
-    buySellRatio: buySellRatio,
-  };
-}
-
-async function fetchFundingRate(symbol: string): Promise<number> {
-  try {
-    const url = `${BINANCE_BASE_URL}/fapi/v1/premiumIndex?symbol=${symbol}`;
-    const response = await fetchWithProxy(url);
-    if (!response.ok) return 0;
-
-    const data = await response.json();
-    return parseFloat(data.lastFundingRate || '0');
-  } catch (error) {
-    console.warn(`Failed to fetch funding rate for ${symbol}:`, error);
-    return 0;
-  }
-}
-
-// ========================================
-// Technical Indicators
-// ========================================
-
-function calculateEMA(prices: number[], period: number): number {
-  if (prices.length < period) return prices[prices.length - 1] || 0;
-
-  const multiplier = 2 / (period + 1);
-  let ema = prices.slice(0, period).reduce((sum, p) => sum + p, 0) / period;
-
-  for (let i = period; i < prices.length; i++) {
-    ema = (prices[i] - ema) * multiplier + ema;
-  }
-
-  return ema;
-}
-
-function calculateMACD(klines: KlineData[]): number {
-  const closes = klines.map(k => k.close);
-
-  console.log(`[calculateMACD] Data length: ${closes.length}`);
-
-  if (closes.length < 26) {
-    console.warn(`[calculateMACD] Insufficient data: need 26, got ${closes.length} - returning 0`);
-    return 0;
-  }
-
-  const ema12 = calculateEMA(closes, 12);
-  const ema26 = calculateEMA(closes, 26);
-  const macd = ema12 - ema26;
-
-  console.log(`[calculateMACD] EMA12=${ema12.toFixed(4)}, EMA26=${ema26.toFixed(4)}, MACD=${macd.toFixed(4)}`);
-
-  return macd;
-}
-
-function calculateRSI(klines: KlineData[], period: number): number {
-  if (klines.length < period + 1) return 50;
-
-  const closes = klines.map(k => k.close);
-  const changes: number[] = [];
-
-  for (let i = 1; i < closes.length; i++) {
-    changes.push(closes[i] - closes[i - 1]);
-  }
-
-  let avgGain = 0;
-  let avgLoss = 0;
-
-  // Initial average
-  for (let i = 0; i < period; i++) {
-    if (changes[i] > 0) {
-      avgGain += changes[i];
-    } else {
-      avgLoss += Math.abs(changes[i]);
-    }
-  }
-
-  avgGain /= period;
-  avgLoss /= period;
-
-  // Calculate subsequent averages
-  for (let i = period; i < changes.length; i++) {
-    if (changes[i] > 0) {
-      avgGain = (avgGain * (period - 1) + changes[i]) / period;
-      avgLoss = (avgLoss * (period - 1)) / period;
-    } else {
-      avgGain = (avgGain * (period - 1)) / period;
-      avgLoss = (avgLoss * (period - 1) + Math.abs(changes[i])) / period;
-    }
-  }
-
-  if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - (100 / (1 + rs));
-}
-
-function calculateATR(klines: KlineData[], period: number = 14): number {
-  if (klines.length < period + 1) return 0;
-
-  const trueRanges: number[] = [];
-
-  for (let i = 1; i < klines.length; i++) {
-    const high = klines[i].high;
-    const low = klines[i].low;
-    const prevClose = klines[i - 1].close;
-
-    const tr = Math.max(
-      high - low,
-      Math.abs(high - prevClose),
-      Math.abs(low - prevClose)
-    );
-
-    trueRanges.push(tr);
-  }
-
-  // Calculate average of last 'period' true ranges
-  const recentTR = trueRanges.slice(-period);
-  return recentTR.reduce((sum, tr) => sum + tr, 0) / period;
-}
+// Re-export types for backward compatibility
+export type { KlineData };
 
 // ========================================
 // Main Market Data Function
@@ -337,6 +105,32 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
 
     // Calculate ATR (based on 15m)
     const atr = calculateATR(klines15m, 14);
+
+    // Calculate time series data (15m timeframe, last 10 points)
+    const seriesLength = 10;
+    const closes15m = klines15m.map(k => k.close);
+
+    // Price series (最近10个15分钟K线的收盘价)
+    const priceSeries15m = closes15m.slice(-seriesLength);
+
+    // MACD series
+    const macdSeries15m = calculateMACDSeries(klines15m, seriesLength);
+
+    // RSI series
+    const rsiSeries15m = calculateRSISeries(klines15m, 14, seriesLength);
+
+    // Volume series (convert to millions for readability)
+    const volumeSeries15m = klines15m
+      .slice(-seriesLength)
+      .map(k => k.quoteVolume / 1_000_000);
+
+    // EMA20 series
+    const ema20Series15m = calculateEMASeries(closes15m, 20, seriesLength);
+
+    // EMA50 series
+    const ema50Series15m = calculateEMASeries(closes15m, 50, seriesLength);
+
+    console.log(`[getMarketData] ${normalizedSymbol} time series: price=${priceSeries15m.length}, macd=${macdSeries15m.length}, rsi=${rsiSeries15m.length}, volume=${volumeSeries15m.length}`);
 
     // Calculate price changes
     // NOTE: currentPrice = klines15m[length-1].close (latest candle)
@@ -426,6 +220,14 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
         // Volatility
         atr: atr,
 
+        // Time series data (15m timeframe, last 10 points)
+        price_series_15m: priceSeries15m,
+        macd_series_15m: macdSeries15m,
+        rsi_series_15m: rsiSeries15m,
+        volume_series_15m: volumeSeries15m,
+        ema20_series_15m: ema20Series15m,
+        ema50_series_15m: ema50Series15m,
+
         // Legacy fields (for compatibility)
         current_macd: macd15m,
         current_rsi7: rsi15m,
@@ -483,6 +285,14 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
 
         // Volatility
         atr: atr,
+
+        // Time series data (15m timeframe, last 10 points)
+        price_series_15m: priceSeries15m,
+        macd_series_15m: macdSeries15m,
+        rsi_series_15m: rsiSeries15m,
+        volume_series_15m: volumeSeries15m,
+        ema20_series_15m: ema20Series15m,
+        ema50_series_15m: ema50Series15m,
 
         // Legacy fields (for compatibility)
         current_macd: macd15m,

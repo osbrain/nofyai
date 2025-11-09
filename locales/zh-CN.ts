@@ -187,7 +187,7 @@ export const zhCN = {
     candidateCoins: '候选币种',
     coins: '个',
     inputPrompt: '输入 Prompt（发送给AI的市场数据）',
-    cotAnalysis: 'AI 思维链分析（Chain of Thought）',
+    cotAnalysis: 'AI 思维链分析',
     decisionJson: '决策 JSON',
     executionLog: '执行日志',
     decisionActions: 'AI 决策动作',

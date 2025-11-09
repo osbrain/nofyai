@@ -168,10 +168,7 @@ npm start
 编辑 `.env.local`：
 
 ```bash
-# 市场数据源（推荐使用 okx，无需代理）
-MARKET_DATA_SOURCE=okx
-
-# 如果使用 Binance 数据源且被墙，配置代理
+# 使用 Binance 数据源且被墙，配置代理
 HTTP_PROXY=http://127.0.0.1:7890
 HTTPS_PROXY=http://127.0.0.1:7890
 ```
@@ -459,7 +456,6 @@ npx tsx scripts/derive-address.ts           # 从私钥推导地址
 **原因：** Binance API 被墙或代理配置错误
 
 **解决：**
-- 修改 `.env.local` 中的 `MARKET_DATA_SOURCE=okx`
 - 或配置正确的 `HTTP_PROXY` 和 `HTTPS_PROXY`
 
 #### 5. Aster 交易失败

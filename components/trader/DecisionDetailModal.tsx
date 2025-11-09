@@ -6,14 +6,19 @@ import { formatUSD, formatPercent } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslations } from '@/lib/i18n-context';
+import { useState } from 'react';
 
 interface DecisionDetailModalProps {
   decision: DecisionRecord | null;
   onClose: () => void;
 }
 
+type PromptTab = 'system' | 'input' | 'cot';
+
 export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalProps) {
   const t = useTranslations();
+  const [activeTab, setActiveTab] = useState<PromptTab>('cot');
+
   if (!decision) return null;
 
   // Clean up CoT trace: remove trailing ```json or ```
@@ -157,47 +162,77 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
             </div>
           )}
 
-          {/* System Prompt */}
-          {decision.system_prompt && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <h3 className="font-bold text-purple-700 mb-3 flex items-center gap-2">
-                <span>⚙️</span>
-                <span>系统提示词 (System Prompt)</span>
-              </h3>
-              <div className="bg-white rounded-lg p-4 border border-purple-300 prose prose-sm max-w-none prose-headings:text-text-primary prose-p:text-text-secondary prose-strong:text-text-primary prose-li:text-text-secondary prose-ul:list-disc prose-ol:list-decimal">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {decision.system_prompt}
-                </ReactMarkdown>
+          {/* AI Analysis Tabs: System Prompt, Input Prompt, CoT */}
+          {(decision.system_prompt || decision.input_prompt || decision.cot_trace) && (
+            <div className="bg-background-secondary rounded-lg overflow-hidden">
+              {/* Tab Headers */}
+              <div className="flex border-b border-border bg-white">
+                {decision.cot_trace && (
+                  <button
+                    onClick={() => setActiveTab('cot')}
+                    className={`flex-1 px-6 py-3 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+                      activeTab === 'cot'
+                        ? 'bg-primary text-white border-b-2 border-primary'
+                        : 'text-text-secondary hover:bg-background-secondary'
+                    }`}
+                  >
+                    <span>💭</span>
+                    <span>{t.trader.cotAnalysis}</span>
+                  </button>
+                )}
+                {decision.system_prompt && (
+                  <button
+                    onClick={() => setActiveTab('system')}
+                    className={`flex-1 px-6 py-3 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+                      activeTab === 'system'
+                        ? 'bg-purple-600 text-white border-b-2 border-purple-600'
+                        : 'text-text-secondary hover:bg-background-secondary'
+                    }`}
+                  >
+                    <span>⚙️</span>
+                    <span>系统提示词</span>
+                  </button>
+                )}
+                {decision.input_prompt && (
+                  <button
+                    onClick={() => setActiveTab('input')}
+                    className={`flex-1 px-6 py-3 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
+                      activeTab === 'input'
+                        ? 'bg-blue-600 text-white border-b-2 border-blue-600'
+                        : 'text-text-secondary hover:bg-background-secondary'
+                    }`}
+                  >
+                    <span>📥</span>
+                    <span>输入提示词</span>
+                  </button>
+                )}
               </div>
-            </div>
-          )}
 
-          {/* Input Prompt */}
-          {decision.input_prompt && (
-            <div className="bg-background-secondary rounded-lg p-4">
-              <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
-                <span>📥</span>
-                <span>{t.trader.inputPrompt}</span>
-              </h3>
-              <div className="bg-white rounded-lg p-4 border border-border">
-                <pre className="text-xs font-mono text-text-secondary whitespace-pre-wrap overflow-x-auto">
-                  {decision.input_prompt}
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {/* CoT Trace */}
-          {decision.cot_trace && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-              <h3 className="font-bold text-primary mb-3 flex items-center gap-2">
-                <span>💭</span>
-                <span>{t.trader.cotAnalysis}</span>
-              </h3>
-              <div className="bg-white rounded-lg p-4 border border-primary/30 prose prose-sm max-w-none prose-headings:text-text-primary prose-p:text-text-secondary prose-strong:text-text-primary prose-li:text-text-secondary prose-ul:list-disc prose-ol:list-decimal">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {cleanCotTrace(decision.cot_trace)}
-                </ReactMarkdown>
+              {/* Tab Content with max height and scroll */}
+              <div className="p-4">
+                <div className="bg-white rounded-lg border border-border overflow-hidden" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                  {activeTab === 'cot' && decision.cot_trace && (
+                    <div className="p-4 prose prose-sm max-w-none prose-headings:text-text-primary prose-p:text-text-secondary prose-strong:text-text-primary prose-li:text-text-secondary prose-ul:list-disc prose-ol:list-decimal">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {cleanCotTrace(decision.cot_trace)}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                  {activeTab === 'system' && decision.system_prompt && (
+                    <div className="p-4 prose prose-sm max-w-none prose-headings:text-purple-700 prose-p:text-text-secondary prose-strong:text-purple-600 prose-li:text-text-secondary prose-ul:list-disc prose-ol:list-decimal">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {decision.system_prompt}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                  {activeTab === 'input' && decision.input_prompt && (
+                    <div className="p-4">
+                      <pre className="text-xs font-mono text-text-secondary whitespace-pre-wrap">
+                        {decision.input_prompt}
+                      </pre>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

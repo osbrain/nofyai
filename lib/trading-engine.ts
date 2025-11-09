@@ -292,10 +292,8 @@ export class TradingEngine {
     // Add symbols from existing positions
     positionInfos.forEach(pos => symbolsToFetch.add(pos.symbol));
 
-    // Add default trading symbols (if no positions)
-    if (symbolsToFetch.size === 1) {
-      DEFAULT_SYMBOLS.forEach(s => symbolsToFetch.add(s));
-    }
+    // Always add default trading symbols (regardless of positions)
+    DEFAULT_SYMBOLS.forEach(s => symbolsToFetch.add(s));
 
     console.log(`📊 Fetching market data for ${symbolsToFetch.size} symbols...`);
 
@@ -351,6 +349,14 @@ export class TradingEngine {
 
           // Volatility
           atr: data.atr,
+
+          // Time series data (15m timeframe, last 10 points)
+          price_series_15m: data.price_series_15m,
+          macd_series_15m: data.macd_series_15m,
+          rsi_series_15m: data.rsi_series_15m,
+          volume_series_15m: data.volume_series_15m,
+          ema20_series_15m: data.ema20_series_15m,
+          ema50_series_15m: data.ema50_series_15m,
         };
       }
 
