@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   LineChart,
   Line,
@@ -20,14 +20,97 @@ interface EquityChartProps {
   initialBalance: number;
 }
 
+type TimeRange = '24h' | '7d' | '30d' | 'all';
+
 export function EquityChart({ data, initialBalance }: EquityChartProps) {
   const t = useTranslations();
-  // Sort data by timestamp
+  const [timeRange, setTimeRange] = useState<TimeRange>('7d');
+
+  // Sort and filter data by timestamp and selected time range
   const sortedData = useMemo(() => {
-    return [...data].sort((a, b) =>
+    // First, sort all data
+    const sorted = [...data].sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
-  }, [data]);
+
+    // If "all" is selected, return all data
+    if (timeRange === 'all') {
+      return sorted;
+    }
+
+    // Calculate time threshold based on selected range
+    const now = new Date();
+    const thresholds: Record<Exclude<TimeRange, 'all'>, number> = {
+      '24h': 24 * 60 * 60 * 1000,      // 24 hours in milliseconds
+      '7d': 7 * 24 * 60 * 60 * 1000,   // 7 days in milliseconds
+      '30d': 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+    };
+
+    const threshold = now.getTime() - thresholds[timeRange];
+
+    // Filter data within the selected time range
+    const filtered = sorted.filter(point =>
+      new Date(point.timestamp).getTime() >= threshold
+    );
+
+    console.log(`[EquityChart] Time range: ${timeRange}, total points: ${sorted.length}, filtered points: ${filtered.length}`);
+
+    return filtered;
+  }, [data, timeRange]);
+
+  // Calculate Y-axis domain to center initial balance and show changes clearly
+  const yAxisDomain = useMemo(() => {
+    if (sortedData.length === 0) {
+      return ['auto', 'auto'];
+    }
+
+    // Find min and max equity
+    const equities = sortedData.map(d => d.total_equity);
+    const maxEquity = Math.max(...equities);
+    const minEquity = Math.min(...equities);
+    const range = maxEquity - minEquity;
+
+    console.log('[EquityChart] Equity stats:', {
+      initialBalance,
+      maxEquity: maxEquity.toFixed(2),
+      minEquity: minEquity.toFixed(2),
+      range: range.toFixed(2),
+      rangePercent: ((range / initialBalance) * 100).toFixed(2) + '%'
+    });
+
+    // Calculate minimum visible range (at least 2% of initial balance)
+    // This prevents the chart from appearing as a flat line when changes are small
+    const minVisibleRange = initialBalance * 0.02; // 2%
+
+    // Calculate space above and below initial balance
+    const spaceAbove = maxEquity - initialBalance;
+    const spaceBelow = initialBalance - minEquity;
+
+    // Use the larger of the two spaces to create symmetry around initial balance
+    // Also ensure minimum visible range
+    const symmetricRange = Math.max(
+      spaceAbove,
+      spaceBelow,
+      minVisibleRange / 2,
+      range / 2
+    );
+
+    // Add 20% padding to prevent line from touching edges
+    const paddedRange = symmetricRange * 1.2;
+
+    // Calculate domain centered on initial balance
+    const yMin = initialBalance - paddedRange;
+    const yMax = initialBalance + paddedRange;
+
+    console.log('[EquityChart] Y-axis domain:', {
+      yMin: yMin.toFixed(2),
+      yMax: yMax.toFixed(2),
+      centerPosition: 'initialBalance at center',
+      rangeUsed: (paddedRange * 2).toFixed(2)
+    });
+
+    return [yMin, yMax];
+  }, [sortedData, initialBalance]);
 
   // Format timestamp for display
   const formatTimestamp = (timestamp: string) => {
@@ -120,7 +203,31 @@ export function EquityChart({ data, initialBalance }: EquityChartProps) {
   const lineColor = isProfitable ? '#16C784' : '#EA3943';
 
   return (
-    <div className="w-full h-[400px]">
+    <div className="w-full space-y-3">
+      {/* Time Range Selector */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium text-text-secondary">
+          {t.trader.equityHistory || 'Equity History'}
+        </div>
+        <div className="flex gap-1 bg-background-secondary rounded-lg p-1">
+          {(['24h', '7d', '30d', 'all'] as const).map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                timeRange === range
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-text-tertiary hover:text-text-secondary'
+              }`}
+            >
+              {range === 'all' ? 'All' : range.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart Container */}
+      <div className="w-full h-[400px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={sortedData}
@@ -140,6 +247,7 @@ export function EquityChart({ data, initialBalance }: EquityChartProps) {
             axisLine={{ stroke: '#EFF2F5' }}
           />
           <YAxis
+            domain={yAxisDomain}
             tickFormatter={(value) => formatUSD(value)}
             stroke="#9CA3AF"
             style={{ fontSize: '12px' }}
@@ -178,6 +286,7 @@ export function EquityChart({ data, initialBalance }: EquityChartProps) {
           />
         </LineChart>
       </ResponsiveContainer>
+    </div>
     </div>
   );
 }
