@@ -17,6 +17,31 @@
 
 import { ProxyAgent } from 'undici';
 import { fetch as undiciFetch } from 'undici';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+// 🎯 Load .env.local if running outside Next.js context
+if (typeof window === 'undefined' && !process.env.NEXT_RUNTIME) {
+  const envPath = resolve(process.cwd(), '.env.local');
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, 'utf-8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      // Skip comments and empty lines
+      if (!trimmed || trimmed.startsWith('#')) return;
+
+      const match = trimmed.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const [, key, value] = match;
+        // Only set if not already defined
+        if (!process.env[key.trim()]) {
+          process.env[key.trim()] = value.trim();
+        }
+      }
+    });
+    console.log('🔧 [HTTP Client] Loaded environment variables from .env.local');
+  }
+}
 
 // Read proxy configuration from environment variables
 const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;

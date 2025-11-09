@@ -43,14 +43,50 @@ export type { AccountInfo };
 export interface MarketData {
   symbol: string;
   current_price: number;
+
+  // Price changes
   price_change_1h: number;
   price_change_4h: number;
-  current_macd: number;
-  current_rsi7: number;
-  current_rsi14: number;
+  price_change_15m: number; // 新增 15m 价格变化
+
+  // Multi-timeframe MACD (最关键 - 用于趋势共振判断)
+  macd_15m: number;
+  macd_1h: number;
+  macd_4h: number;
+
+  // Multi-timeframe RSI (用于防假突破检测)
+  rsi_15m: number;
+  rsi_1h: number;
+  rsi_4h: number;
+
+  // EMA (用于趋势方向确认)
+  ema20: number; // 当前价格对应的 EMA20
+
+  // Volume (成交量)
   volume_24h: number;
-  oi_value: number; // Open Interest value in millions
-  // Add more fields as needed
+  volume_avg_24h: number; // 24h 平均成交量（用于判断是否放量 >1.5x）
+
+  // Open Interest (持仓量)
+  oi_value: number; // 当前持仓量价值（百万美元）
+  oi_change_pct: number; // OI 变化百分比（判断 >+5% 真实突破）
+
+  // Market sentiment (市场情绪指标)
+  buy_sell_ratio?: number; // 买卖比（可选，某些交易所可能没有）
+  funding_rate?: number; // 资金费率（可选）
+
+  // OHLC data (K线数据 - 用于形态判断)
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+
+  // Volatility (波动率)
+  atr: number; // 平均真实波幅
+
+  // Legacy fields (保持兼容)
+  current_macd: number; // 废弃：使用 macd_15m
+  current_rsi7: number; // 废弃：使用 rsi_15m
+  current_rsi14: number; // 废弃：使用 rsi_1h
 }
 
 export interface TradingContext {
@@ -74,7 +110,7 @@ export function buildSystemPrompt(
   btcEthLeverage: number,
   altcoinLeverage: number
 ): string {
-  // V5.5.1 Adaptive Trading Prompt - Comprehensive trading strategy with 8-step decision flow
+  // Adaptive Trading Prompt - Comprehensive trading strategy with 8-step decision flow
   return `你是专业的加密货币交易AI，在合约市场进行自主交易。
 
 # 核心目标
@@ -188,7 +224,7 @@ export function buildSystemPrompt(
 
 **不满足 → 输出 wait，reasoning 写明"冷却中"**
 
-## 第 2 步：连续亏损检查（V5.5.1 新增）
+## 第 2 步：连续亏损检查
 
 检查连续亏损状态，触发暂停机制：
 
@@ -217,7 +253,7 @@ export function buildSystemPrompt(
 4. 接近阻力位？→ 考虑 update_take_profit（调整目标）
 5. 持仓表现符合预期？→ hold
 
-## 第 5 步：BTC 状态确认（V5.5.1 新增 - 最关键）
+## 第 5 步：BTC 状态确认
 
 ⚠️ **BTC 是市场领导者，交易任何币种前必须先确认 BTC 状态**
 
@@ -254,7 +290,7 @@ export function buildSystemPrompt(
 
 ⚠️ **交易 BTC 本身应更加谨慎，使用更高时间框架过滤**
 
-## 第 6 步：多空确认清单（V5.5.1 新增）
+## 第 6 步：多空确认清单
 
 **在评估新机会前，必须先通过方向确认清单**
 
@@ -288,7 +324,7 @@ export function buildSystemPrompt(
 
 **一致性不足 → 输出 wait，reasoning 写明"指标一致性不足：仅 X/8 项一致"**
 
-### 信号优先级排序（V5.5.1 新增）
+### 信号优先级排序
 
 当多个指标出现矛盾时，按以下优先级权重判断：
 
@@ -308,7 +344,7 @@ export function buildSystemPrompt(
 - **前 3 项出现矛盾** → 即使其他指标支持，也应 wait（优先级低的指标不可靠）
 - **OI 持仓量若无数据** → 可忽略该项，改为 5/7 项一致即可开仓
 
-## 第 7 步：防假突破检测（V5.5.1 新增）
+## 第 7 步：防假突破检测
 
 在开仓前额外检查以下假突破信号，若触发则禁止开仓：
 
@@ -332,7 +368,7 @@ export function buildSystemPrompt(
 
 如果无持仓或资金充足，且通过所有检查：
 
-### 信心度客观评分公式（V5.5.1 新增）
+### 信心度客观评分公式
 
 #### 基础分：60 分
 
@@ -446,7 +482,7 @@ export function buildSystemPrompt(
 2. **stop_loss** (止损价格)
    - 限制单笔亏损在账户 1-3%
    - 放置在关键支撑/阻力位之外
-   - **滑点调整（V5.5.1 新增）**：
+   - **滑点调整**：
      - 做多：止损价格下移 0.05%（50,000 → 49,975）
      - 做空：止损价格上移 0.05%
      - 预留滑点缓冲，防止实际成交价偏移
@@ -466,7 +502,7 @@ export function buildSystemPrompt(
    - 计算公式: |入场价 - 止损价| × 仓位数量 × 杠杆
    - 必须 ≤ 账户净值 × 风险预算（1.5-2.5%）
 
-6. **slippage_buffer** (滑点缓冲 - V5.5.1 新增)
+6. **slippage_buffer** (滑点缓冲)
    - 预期滑点：0.01-0.1%（取决于仓位大小）
    - 小仓位（<1000 USDT）：0.01-0.02%
    - 中仓位（1000-5000 USDT）：0.02-0.05%
@@ -500,7 +536,7 @@ export function buildSystemPrompt(
 - 上涨 + OI 增加 → 强势上涨
 - 下跌 + OI 增加 → 强势下跌
 - OI 下降 → 趋势减弱
-- **OI 变化 >+5%** → 真实突破确认（V5.5.1 强调）
+- **OI 变化 >+5%** → 真实突破确认
 
 **资金费率 (Funding Rate)**: 市场情绪
 - 正费率 → 看涨（多方支付空方）
@@ -565,7 +601,7 @@ export function buildSystemPrompt(
 3. **质量优于数量**: 少量高信念交易胜过大量低信念交易
 4. **适应波动性**: 根据市场条件调整仓位
 5. **尊重趋势**: 不要与强趋势作对
-6. **BTC 优先**: 交易山寨币前必须确认 BTC 状态（V5.5.1 强调）
+6. **BTC 优先**: 交易山寨币前必须确认 BTC 状态
 
 ## 常见误区避免
 
@@ -574,8 +610,8 @@ export function buildSystemPrompt(
 - ⚠️ **分析瘫痪**: 过度等待完美信号
 - ⚠️ **忽视相关性**: BTC 常引领山寨币，优先观察 BTC
 - ⚠️ **过度杠杆**: 放大收益同时放大亏损
-- ⚠️ **假突破陷阱**: 15m 超买但 1h 未跟上，可能是假突破（V5.5.1 新增）
-- ⚠️ **信心度虚高**: 主观判断 90 分，但客观评分可能只有 65 分（V5.5.1 新增）
+- ⚠️ **假突破陷阱**: 15m 超买但 1h 未跟上，可能是假突破
+- ⚠️ **信心度虚高**: 主观判断 90 分，但客观评分可能只有 65 分
 
 ## 交易频率认知
 
@@ -587,7 +623,7 @@ export function buildSystemPrompt(
 自查:
 - 每个周期都交易 → 标准太低
 - 持仓 <30 分钟就平仓 → 太急躁
-- 连续 2 次止损后仍想立即开仓 → 需暂停 45 分钟（V5.5.1 强制）
+- 连续 2 次止损后仍想立即开仓 → 需暂停 45 分钟
 
 ---
 
@@ -598,25 +634,10 @@ export function buildSystemPrompt(
 3. 确保 JSON 输出有效且完整
 4. 使用客观公式计算信心评分（不要夸大）
 5. 坚持退出计划（不要过早放弃止损）
-6. **先检查 BTC 状态，再决定是否开仓**（V5.5.1 核心）
+6. **先检查 BTC 状态，再决定是否开仓**
 7. **疑惑时，选择 wait**（最高原则）
 
 记住: 你在用真金白银交易真实市场。每个决策都有后果。系统化交易，严格管理风险，让概率随时间为你服务。
-
----
-
-# V5.5.1 核心改进总结
-
-1. ✅ **BTC 状态检查**（第 5 步）- 交易山寨币的最关键保护
-2. ✅ **多空确认清单**（第 6 步）- 5/8 项一致，防假信号
-3. ✅ **客观信心度评分**（第 8 步）- 基础分 60 + 条件加减分
-4. ✅ **防假突破逻辑**（第 7 步）- RSI 多周期 + K 线形态过滤
-5. ✅ **连续止损暂停**（第 2 步）- 2 次 45min，3 次 24h，4 次 72h
-6. ✅ **OI 持仓量确认**（第 6 步清单第 8 项）- >+5% 真实突破
-7. ✅ **信号优先级排序**（第 6 步）- 趋势共振 > 放量 > BTC > RSI...
-8. ✅ **滑点处理**（风险管理协议第 2/6 项）- 0.05% 缓冲 + 收益检查
-
-**设计哲学**：让 AI 自主判断趋势或震荡，不预设策略 A/B，信任强推理模型的能力。
 
 ---
 
@@ -656,12 +677,29 @@ export function buildUserPrompt(ctx: TradingContext): string {
     `**时间**: ${ctx.current_time} | **周期**: #${ctx.call_count} | **运行**: ${ctx.runtime_minutes}分钟\n\n`
   );
 
-  // BTC市场
+  // BTC市场（关键 - 用于第5步BTC状态确认）
   const btcData = ctx.market_data_map['BTCUSDT'];
   if (btcData) {
-    parts.push(
-      `**BTC**: ${btcData.current_price.toFixed(2)} (1h: ${btcData.price_change_1h >= 0 ? '+' : ''}${btcData.price_change_1h.toFixed(2)}%, 4h: ${btcData.price_change_4h >= 0 ? '+' : ''}${btcData.price_change_4h.toFixed(2)}%) | MACD: ${btcData.current_macd.toFixed(4)} | RSI: ${btcData.current_rsi7.toFixed(2)}\n\n`
-    );
+    parts.push('## 🔴 BTC 市场（市场领导者）\n\n');
+    parts.push(`**价格**: $${btcData.current_price.toFixed(2)}\n`);
+
+    // 安全访问新字段（可能为 undefined）
+    const change15m = btcData.price_change_15m ?? 0;
+    const change1h = btcData.price_change_1h ?? 0;
+    const change4h = btcData.price_change_4h ?? 0;
+    parts.push(`**涨跌**: 15m ${change15m >= 0 ? '+' : ''}${change15m.toFixed(2)}% | 1h ${change1h >= 0 ? '+' : ''}${change1h.toFixed(2)}% | 4h ${change4h >= 0 ? '+' : ''}${change4h.toFixed(2)}%\n`);
+
+    const macd15m = btcData.macd_15m ?? btcData.current_macd ?? 0;
+    const macd1h = btcData.macd_1h ?? 0;
+    const macd4h = btcData.macd_4h ?? 0;
+    parts.push(`**MACD 多周期**: 15m ${macd15m.toFixed(4)} | 1h ${macd1h.toFixed(4)} | 4h ${macd4h.toFixed(4)}\n`);
+
+    const rsi15m = btcData.rsi_15m ?? btcData.current_rsi7 ?? 50;
+    const rsi1h = btcData.rsi_1h ?? btcData.current_rsi14 ?? 50;
+    const rsi4h = btcData.rsi_4h ?? 50;
+    parts.push(`**RSI 多周期**: 15m ${rsi15m.toFixed(1)} | 1h ${rsi1h.toFixed(1)} | 4h ${rsi4h.toFixed(1)}\n`);
+
+    parts.push(`**资金费率**: ${(btcData.funding_rate || 0) >= 0 ? '+' : ''}${((btcData.funding_rate || 0) * 100).toFixed(4)}%\n\n`);
   }
 
   // 账户
@@ -672,7 +710,7 @@ export function buildUserPrompt(ctx: TradingContext): string {
 
   // 持仓
   if (ctx.positions.length > 0) {
-    parts.push('## 当前持仓\n');
+    parts.push('## 当前持仓\n\n');
     ctx.positions.forEach((pos, i) => {
       // 计算持仓时长
       let holdingDuration = '';
@@ -721,7 +759,7 @@ export function buildUserPrompt(ctx: TradingContext): string {
   }
 
   parts.push('---\n\n');
-  parts.push('现在请分析并输出决策（思维链 + JSON）\n');
+  parts.push('现在请按照 决策流程（第0-8步）分析并输出决策（思维链 + JSON）\n');
 
   return parts.join('');
 }
@@ -729,15 +767,95 @@ export function buildUserPrompt(ctx: TradingContext): string {
 function formatMarketData(data: MarketData): string {
   const parts: string[] = [];
 
-  parts.push(`**价格**: ${data.current_price.toFixed(4)}\n`);
+  parts.push(`**价格**: $${data.current_price.toFixed(4)}\n`);
+
+  // 安全访问价格变化（可能为 undefined）
+  const change15m = data.price_change_15m ?? 0;
+  const change1h = data.price_change_1h ?? 0;
+  const change4h = data.price_change_4h ?? 0;
   parts.push(
-    `**涨跌**: 1h ${data.price_change_1h >= 0 ? '+' : ''}${data.price_change_1h.toFixed(2)}%, 4h ${data.price_change_4h >= 0 ? '+' : ''}${data.price_change_4h.toFixed(2)}%\n`
+    `**涨跌**: 15m ${change15m >= 0 ? '+' : ''}${change15m.toFixed(2)}% | 1h ${change1h >= 0 ? '+' : ''}${change1h.toFixed(2)}% | 4h ${change4h >= 0 ? '+' : ''}${change4h.toFixed(2)}%\n`
   );
-  parts.push(`**MACD**: ${data.current_macd.toFixed(4)}\n`);
-  parts.push(`**RSI7**: ${data.current_rsi7.toFixed(2)} | **RSI14**: ${data.current_rsi14.toFixed(2)}\n`);
-  parts.push(`**24h成交量**: ${(data.volume_24h / 1e6).toFixed(2)}M\n`);
+
+  // 多周期 MACD（趋势共振判断 - 优先级最高）
+  const macd15m = data.macd_15m ?? data.current_macd ?? 0;
+  const macd1h = data.macd_1h ?? 0;
+  const macd4h = data.macd_4h ?? 0;
+  parts.push(
+    `**MACD 多周期**: 15m ${macd15m.toFixed(4)} | 1h ${macd1h.toFixed(4)} | 4h ${macd4h.toFixed(4)}\n`
+  );
+
+  // 多周期 RSI（防假突破检测）
+  const rsi15m = data.rsi_15m ?? data.current_rsi7 ?? 50;
+  const rsi1h = data.rsi_1h ?? data.current_rsi14 ?? 50;
+  const rsi4h = data.rsi_4h ?? 50;
+  parts.push(
+    `**RSI 多周期**: 15m ${rsi15m.toFixed(1)} | 1h ${rsi1h.toFixed(1)} | 4h ${rsi4h.toFixed(1)}\n`
+  );
+
+  // EMA20（趋势方向确认）
+  const ema20 = data.ema20 ?? data.current_price;
+  const priceDiff = Math.abs(data.current_price - ema20);
+  const priceDiffPct = (priceDiff / ema20) * 100;
+
+  parts.push(`**EMA20**: ${ema20.toFixed(4)}`);
+  if (priceDiffPct < 0.01) {
+    // Price is essentially equal to EMA20 (within 0.01%)
+    parts.push(` (价格 = EMA20，震荡中性)\n`);
+  } else if (data.current_price > ema20) {
+    parts.push(` (价格 > EMA20，上升趋势)\n`);
+  } else {
+    parts.push(` (价格 < EMA20，下降趋势)\n`);
+  }
+
+  // 成交量（判断是否放量）
+  const volumeAvg = data.volume_avg_24h ?? data.volume_24h;
+  const volumeRatio = volumeAvg > 0 ? data.volume_24h / volumeAvg : 1;
+  parts.push(`**24h成交量**: ${(data.volume_24h / 1e6).toFixed(2)}M | 均量: ${(volumeAvg / 1e6).toFixed(2)}M | 放量倍数: ${volumeRatio.toFixed(2)}x\n`);
+
+  // 持仓量（OI）
   if (data.oi_value > 0) {
-    parts.push(`**持仓价值**: ${data.oi_value.toFixed(2)}M USD\n`);
+    const oiChangePct = data.oi_change_pct ?? 0;
+    parts.push(`**持仓量**: ${data.oi_value.toFixed(2)}M USD | 变化率: ${oiChangePct >= 0 ? '+' : ''}${oiChangePct.toFixed(2)}%\n`);
+  }
+
+  // 资金费率（市场情绪）
+  if (data.funding_rate !== undefined) {
+    parts.push(`**资金费率**: ${data.funding_rate >= 0 ? '+' : ''}${(data.funding_rate * 100).toFixed(4)}%`);
+    if (data.funding_rate > 0.01) {
+      parts.push(` (多头贪婪)\n`);
+    } else if (data.funding_rate < -0.01) {
+      parts.push(` (空头恐慌)\n`);
+    } else {
+      parts.push(` (中性)\n`);
+    }
+  }
+
+  // K线数据（OHLC - 用于形态判断）
+  if (data.open !== undefined && data.high !== undefined && data.low !== undefined && data.close !== undefined) {
+    const bodySize = Math.abs(data.close - data.open);
+    const upperWick = data.high - Math.max(data.open, data.close);
+    const lowerWick = Math.min(data.open, data.close) - data.low;
+    const totalRange = data.high - data.low;
+
+    parts.push(`**K线形态**: O ${data.open.toFixed(4)} | H ${data.high.toFixed(4)} | L ${data.low.toFixed(4)} | C ${data.close.toFixed(4)}\n`);
+    parts.push(`  → 实体: ${bodySize.toFixed(4)} | 上影: ${upperWick.toFixed(4)} | 下影: ${lowerWick.toFixed(4)}`);
+
+    // 判断形态类型
+    if (bodySize / totalRange < 0.2 && totalRange > 0) {
+      parts.push(` (十字星)\n`);
+    } else if (upperWick > bodySize * 2) {
+      parts.push(` (长上影)\n`);
+    } else if (lowerWick > bodySize * 2) {
+      parts.push(` (长下影)\n`);
+    } else {
+      parts.push(`\n`);
+    }
+
+    // ATR（波动率）
+    if (data.atr !== undefined) {
+      parts.push(`**ATR (波动率)**: ${data.atr.toFixed(4)}\n`);
+    }
   }
 
   return parts.join('');

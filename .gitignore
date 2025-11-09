@@ -48,3 +48,4 @@ Thumbs.db
 # Misc
 .vercel
 .turbo
+.cache/

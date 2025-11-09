@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { EquityChart } from '@/components/trader/EquityChart';
 import { DecisionDetailModal } from '@/components/trader/DecisionDetailModal';
 import { PerformanceMetrics } from '@/components/trader/PerformanceMetrics';
@@ -110,93 +111,110 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
             </div>
           </div>
 
-          {/* Control Buttons - Only shown when showHeader=true */}
-          {showHeader && (
-            <div className="flex items-center gap-3">
-              {/* Start/Stop Button */}
-              {isRunning ? (
-                <button
-                  onClick={async () => {
-                    if (!confirm(t.trader.confirmStop)) {
-                      return;
-                    }
-                    try {
-                      const response = await fetch(`/api/trade/stop?trader_id=${traderId}`, {
-                        method: 'POST',
-                      });
+          {/* Control Buttons - Only shown when showHeader=true and trader has been started at least once */}
+          {showHeader && status.call_count > 0 && (
+            <TooltipProvider>
+              <div className="flex items-center gap-3">
+                {isRunning ? (
+                  <>
+                    {/* Stop Button */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(t.trader.confirmStop)) {
+                              return;
+                            }
+                            try {
+                              const response = await fetch(`/api/trade/stop?trader_id=${traderId}`, {
+                                method: 'POST',
+                              });
 
-                      if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || t.trader.failedToStopTrader);
+                              if (!response.ok) {
+                                const error = await response.json();
+                                throw new Error(error.error || t.trader.failedToStopTrader);
+                              }
+
+                              alert(t.trader.traderStopped);
+                              window.location.reload();
+                            } catch (error) {
+                              alert(error instanceof Error ? error.message : t.trader.failedToStopTrader);
+                            }
+                          }}
+                          className="px-4 py-1.5 bg-warning text-white rounded-lg hover:bg-warning/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                        >
+                          <span>⏸️</span>
+                          <span>{t.trader.stopTrading}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">停止自动交易循环，但保留现有持仓。可随时重新启动继续交易。</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {/* Emergency Stop */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(t.trader.confirmEmergencyStop)) {
+                              return;
+                            }
+                            try {
+                              const response = await fetch('/api/emergency-stop', {
+                                method: 'POST',
+                              });
+
+                              if (!response.ok) {
+                                const error = await response.json();
+                                throw new Error(error.error || t.trader.failedToEmergencyStop);
+                              }
+
+                              alert(t.trader.emergencyStopComplete);
+                              window.location.reload();
+                            } catch (error) {
+                              alert(error instanceof Error ? error.message : t.trader.failedToEmergencyStop);
+                            }
+                          }}
+                          className="px-4 py-1.5 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                        >
+                          <span>🚨</span>
+                          <span>{t.trader.emergencyStop}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">⚠️ 紧急停止所有交易者并平掉全部持仓。用于市场异常或需要立即退出时。</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </>
+                ) : (
+                  // Start Button - shown when stopped after having run before
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`/api/trade/start?trader_id=${traderId}`, {
+                          method: 'POST',
+                        });
+
+                        if (!response.ok) {
+                          const error = await response.json();
+                          throw new Error(error.error || t.trader.failedToStartTrader);
+                        }
+
+                        alert(t.trader.traderStarted);
+                        window.location.reload();
+                      } catch (error) {
+                        alert(error instanceof Error ? error.message : t.trader.failedToStartTrader);
                       }
-
-                      alert(t.trader.traderStopped);
-                      window.location.reload();
-                    } catch (error) {
-                      alert(error instanceof Error ? error.message : t.trader.failedToStopTrader);
-                    }
-                  }}
-                  className="px-4 py-1.5 bg-warning text-white rounded-lg hover:bg-warning/90 transition-colors font-semibold text-sm flex items-center gap-2"
-                >
-                  <span>⏸️</span>
-                  <span>{t.trader.stopTrading}</span>
-                </button>
-              ) : (
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(`/api/trade/start?trader_id=${traderId}`, {
-                        method: 'POST',
-                      });
-
-                      if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || t.trader.failedToStartTrader);
-                      }
-
-                      alert(t.trader.traderStarted);
-                      window.location.reload();
-                    } catch (error) {
-                      alert(error instanceof Error ? error.message : t.trader.failedToStartTrader);
-                    }
-                  }}
-                  className="px-4 py-1.5 bg-success text-white rounded-lg hover:bg-success/90 transition-colors font-semibold text-sm flex items-center gap-2"
-                >
-                  <span>▶️</span>
-                  <span>{t.trader.startTrading}</span>
-                </button>
-              )}
-
-              {/* Emergency Stop (only when running) */}
-              {isRunning && (
-                <button
-                  onClick={async () => {
-                    if (!confirm(t.trader.confirmEmergencyStop)) {
-                      return;
-                    }
-                    try {
-                      const response = await fetch('/api/emergency-stop', {
-                        method: 'POST',
-                      });
-
-                      if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.error || t.trader.failedToEmergencyStop);
-                      }
-
-                      alert(t.trader.emergencyStopComplete);
-                      window.location.reload();
-                    } catch (error) {
-                      alert(error instanceof Error ? error.message : t.trader.failedToEmergencyStop);
-                    }
-                  }}
-                  className="px-4 py-1.5 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors font-semibold text-sm flex items-center gap-2"
-                >
-                  <span>🚨</span>
-                  <span>{t.trader.emergencyStop}</span>
-                </button>
-              )}
-            </div>
+                    }}
+                    className="px-4 py-1.5 bg-success text-white rounded-lg hover:bg-success/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                  >
+                    <span>▶️</span>
+                    <span>{t.trader.startTrading}</span>
+                  </button>
+                )}
+              </div>
+            </TooltipProvider>
           )}
         </div>
       </div>

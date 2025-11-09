@@ -102,6 +102,10 @@ export class TradingEngine {
 
     // Initialize cycle number from existing logs
     this.logger.initializeCycleNumber().then(() => {
+      // 🎯 Sync restored cycle number to session for correct display
+      this.session.callCount = this.logger.getCycleNumber();
+      console.log(`📊 Restored session call count to ${this.session.callCount} from existing logs`);
+
       // Run immediately, then on interval
       this.runCycle().catch(err => {
         console.error('Error in trading cycle:', err);
@@ -276,13 +280,48 @@ export class TradingEngine {
         marketDataMap[symbol] = {
           symbol: data.symbol,
           current_price: data.current_price,
+
+          // Multi-timeframe price changes
+          price_change_15m: data.price_change_15m,
           price_change_1h: data.price_change_1h,
           price_change_4h: data.price_change_4h,
-          current_macd: data.current_macd,
-          current_rsi7: data.current_rsi7,
-          current_rsi14: data.current_rsi14,
+
+          // Multi-timeframe MACD
+          macd_15m: data.macd_15m,
+          macd_1h: data.macd_1h,
+          macd_4h: data.macd_4h,
+          current_macd: data.current_macd, // Legacy field
+
+          // Multi-timeframe RSI
+          rsi_15m: data.rsi_15m,
+          rsi_1h: data.rsi_1h,
+          rsi_4h: data.rsi_4h,
+          current_rsi7: data.current_rsi7,   // Legacy field
+          current_rsi14: data.current_rsi14, // Legacy field
+
+          // EMA
+          ema20: data.ema20,
+
+          // Volume
           volume_24h: data.volume_24h,
+          volume_avg_24h: data.volume_avg_24h,
+
+          // Open Interest
           oi_value: data.oi_value,
+          oi_change_pct: data.oi_change_pct,
+
+          // Market sentiment
+          buy_sell_ratio: data.buy_sell_ratio,
+          funding_rate: data.funding_rate,
+
+          // OHLC
+          open: data.open,
+          high: data.high,
+          low: data.low,
+          close: data.close,
+
+          // Volatility
+          atr: data.atr,
         };
       }
 
@@ -293,13 +332,48 @@ export class TradingEngine {
       marketDataMap['BTCUSDT'] = {
         symbol: 'BTCUSDT',
         current_price: 95000,
+
+        // Price changes
+        price_change_15m: 0,
         price_change_1h: 0,
         price_change_4h: 0,
+
+        // Multi-timeframe MACD
+        macd_15m: 0,
+        macd_1h: 0,
+        macd_4h: 0,
         current_macd: 0,
+
+        // Multi-timeframe RSI
+        rsi_15m: 50,
+        rsi_1h: 50,
+        rsi_4h: 50,
         current_rsi7: 50,
         current_rsi14: 50,
+
+        // EMA
+        ema20: 95000,
+
+        // Volume
         volume_24h: 0,
+        volume_avg_24h: 0,
+
+        // Open Interest
         oi_value: 0,
+        oi_change_pct: 0,
+
+        // Market sentiment
+        buy_sell_ratio: undefined,
+        funding_rate: 0,
+
+        // OHLC
+        open: 95000,
+        high: 95000,
+        low: 95000,
+        close: 95000,
+
+        // Volatility
+        atr: 0,
       };
     }
 

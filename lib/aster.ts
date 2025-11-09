@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { fetchWithProxy } from './http-client';
 
 // ========================================
 // Types
@@ -73,7 +74,7 @@ export class AsterTrader {
     }
 
     // Fetch exchange info
-    const response = await fetch(`${this.baseURL}/fapi/v3/exchangeInfo`);
+    const response = await fetchWithProxy(`${this.baseURL}/fapi/v3/exchangeInfo`);
     if (!response.ok) {
       throw new Error(`Failed to fetch exchange info: ${response.statusText}`);
     }
@@ -228,7 +229,7 @@ export class AsterTrader {
             formBody.append(key, String(value));
           }
 
-          response = await fetch(url, {
+          response = await fetchWithProxy(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
@@ -242,7 +243,7 @@ export class AsterTrader {
             queryString.append(key, String(value));
           }
 
-          response = await fetch(`${url}?${queryString.toString()}`, {
+          response = await fetchWithProxy(`${url}?${queryString.toString()}`, {
             method,
           });
         }
@@ -526,7 +527,7 @@ export class AsterTrader {
   }
 
   async getMarketPrice(symbol: string): Promise<number> {
-    const response = await fetch(`${this.baseURL}/fapi/v3/ticker/price?symbol=${symbol}`);
+    const response = await fetchWithProxy(`${this.baseURL}/fapi/v3/ticker/price?symbol=${symbol}`);
     if (!response.ok) {
       throw new Error(`Failed to get market price: ${response.statusText}`);
     }

@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",
     "clsx": "^2.1.1",
