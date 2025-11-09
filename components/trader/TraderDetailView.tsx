@@ -92,7 +92,7 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
               🤖
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-text-primary">{status.trader_name || t.trader.traderDetails}</h1>
+              <h1 className="text-2xl font-bold text-text-primary">{traderId}</h1>
               <div className="flex items-center gap-2 text-xs text-text-secondary">
                 <span>{t.trader.ai}: <span className="font-semibold text-primary">{status.ai_provider?.toUpperCase() || 'UNKNOWN'}</span></span>
                 <span>•</span>

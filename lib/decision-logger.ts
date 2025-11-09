@@ -50,6 +50,9 @@ export interface DecisionRecord {
   // Input Prompt (optional - the full prompt sent to AI)
   input_prompt?: string;
 
+  // System Prompt (optional - the system prompt used for AI)
+  system_prompt?: string;
+
   // Performance Metrics (optional)
   performance?: {
     runtime_minutes: number;
@@ -86,7 +89,8 @@ export class DecisionLogger {
   async saveDecision(
     fullDecision: FullDecision,
     context: TradingContext,
-    executionResults: Array<{ symbol: string; action: string; success: boolean; error?: string }>
+    executionResults: Array<{ symbol: string; action: string; success: boolean; error?: string }>,
+    systemPrompt?: string // 添加系统提示词参数
   ): Promise<string | null> {
     try {
       this.cycleNumber++;
@@ -121,6 +125,7 @@ export class DecisionLogger {
         })),
         execution_results: executionResults,
         input_prompt: fullDecision.user_prompt, // Save the full prompt sent to AI
+        system_prompt: systemPrompt, // 保存系统提示词
         performance: {
           runtime_minutes: context.runtime_minutes,
           total_cycles: context.call_count,

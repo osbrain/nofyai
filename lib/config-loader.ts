@@ -148,6 +148,7 @@ export class ConfigLoader {
       btcEthLeverage: this.config.leverage.btc_eth_leverage,
       altcoinLeverage: this.config.leverage.altcoin_leverage,
       scanIntervalMinutes: traderConfig.scan_interval_minutes,
+      promptTemplate: traderConfig.prompt_template || 'adaptive', // 默认使用 adaptive
       traderId: traderConfig.id,
       traderName: traderConfig.name,
       telegram: this.config.telegram,

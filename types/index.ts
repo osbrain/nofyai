@@ -93,6 +93,7 @@ export interface DecisionRecord {
 
   // Optional fields
   input_prompt?: string;
+  system_prompt?: string; // 系统提示词
   decision_json?: string;
   candidate_coins?: string[];
   execution_log?: string[];
@@ -201,6 +202,9 @@ export interface TraderConfig {
   // Trading Parameters
   initial_balance: number;
   scan_interval_minutes: number;
+
+  // Prompt Template Configuration
+  prompt_template?: string; // 提示词模板名称 (adaptive/default/nof1/taro)，默认 adaptive
 }
 
 // Leverage Configuration

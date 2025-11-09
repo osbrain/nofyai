@@ -22,7 +22,11 @@
 
       // Trading Configuration
       "initial_balance": 1000.0,
-      "scan_interval_minutes": 3
+      "scan_interval_minutes": 3,
+
+      // Prompt Template (optional, default: "adaptive")
+      // Options: "adaptive", "default", "nof1", "taro"
+      "prompt_template": "adaptive"
     },
     {
       "id": "aster_qwen",
@@ -41,7 +45,10 @@
 
       // Trading Configuration
       "initial_balance": 1000.0,
-      "scan_interval_minutes": 3
+      "scan_interval_minutes": 3,
+
+      // Prompt Template (optional, default: "adaptive")
+      "prompt_template": "default"
     },
     {
       "id": "aster_custom",
@@ -62,7 +69,10 @@
 
       // Trading Configuration
       "initial_balance": 1000.0,
-      "scan_interval_minutes": 3
+      "scan_interval_minutes": 3,
+
+      // Prompt Template (optional, default: "adaptive")
+      "prompt_template": "nof1"
     }
   ],
 

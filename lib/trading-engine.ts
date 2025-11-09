@@ -1,6 +1,7 @@
 import { AsterTrader, Position, Balance } from './aster';
 import {
   getFullDecision,
+  buildSystemPrompt,
   Decision,
   TradingContext,
   PositionInfo,
@@ -28,6 +29,7 @@ export interface TradingEngineConfig {
   btcEthLeverage: number;
   altcoinLeverage: number;
   scanIntervalMinutes: number;
+  promptTemplate?: string; // 提示词模板名称 (adaptive/default/nof1/taro)
   traderId?: string; // Optional trader ID for logs
   traderName?: string; // Optional trader name for notifications
   telegram?: TelegramConfig; // Optional Telegram notification config
@@ -164,8 +166,16 @@ export class TradingEngine {
       // 3. Execute decisions and collect results
       const executionResults = await this.executeDecisions(fullDecision.decisions, ctx);
 
-      // 4. Save decision log
-      await this.logger.saveDecision(fullDecision, ctx, executionResults);
+      // 4. Build system prompt for logging
+      const systemPrompt = buildSystemPrompt(
+        ctx.account.total_equity,
+        ctx.btc_eth_leverage,
+        ctx.altcoin_leverage,
+        ctx.prompt_template || 'adaptive'
+      );
+
+      // 5. Save decision log with system prompt
+      await this.logger.saveDecision(fullDecision, ctx, executionResults, systemPrompt);
 
       console.log(`\n✅ Cycle #${this.session.callCount} completed\n`);
     } catch (error) {
@@ -253,6 +263,23 @@ export class TradingEngine {
       ? Math.floor((Date.now() - this.session.startTime.getTime()) / (1000 * 60))
       : 0;
 
+    // Get performance metrics (历史表现数据)
+    console.log('📊 Analyzing performance metrics...');
+    const performanceAnalysis = await this.logger.analyzePerformance(100); // 分析最近100笔交易
+    const performance = {
+      total_trades: performanceAnalysis.total_trades,
+      winning_trades: performanceAnalysis.winning_trades,
+      losing_trades: performanceAnalysis.losing_trades,
+      win_rate: performanceAnalysis.win_rate,
+      avg_profit: performanceAnalysis.avg_profit,
+      avg_loss: performanceAnalysis.avg_loss,
+      profit_factor: performanceAnalysis.profit_factor,
+      sharpe_ratio: performanceAnalysis.sharpe_ratio,
+      max_drawdown: performanceAnalysis.max_drawdown,
+      avg_holding_time_minutes: performanceAnalysis.avg_holding_time_minutes,
+    };
+    console.log(`✅ Performance: ${performanceAnalysis.total_trades} trades, Sharpe ${performanceAnalysis.sharpe_ratio.toFixed(2)}, Win Rate ${performanceAnalysis.win_rate.toFixed(1)}%`);
+
     // Build market data from Binance API
     const marketDataMap: Record<string, AIMarketData> = {};
 
@@ -290,12 +317,14 @@ export class TradingEngine {
           macd_15m: data.macd_15m,
           macd_1h: data.macd_1h,
           macd_4h: data.macd_4h,
+          macd_1d: data.macd_1d,
           current_macd: data.current_macd, // Legacy field
 
           // Multi-timeframe RSI
           rsi_15m: data.rsi_15m,
           rsi_1h: data.rsi_1h,
           rsi_4h: data.rsi_4h,
+          rsi_1d: data.rsi_1d,
           current_rsi7: data.current_rsi7,   // Legacy field
           current_rsi14: data.current_rsi14, // Legacy field
 
@@ -342,12 +371,14 @@ export class TradingEngine {
         macd_15m: 0,
         macd_1h: 0,
         macd_4h: 0,
+        macd_1d: 0,
         current_macd: 0,
 
         // Multi-timeframe RSI
         rsi_15m: 50,
         rsi_1h: 50,
         rsi_4h: 50,
+        rsi_1d: 50,
         current_rsi7: 50,
         current_rsi14: 50,
 
@@ -384,8 +415,11 @@ export class TradingEngine {
       account: accountInfo,
       positions: positionInfos,
       market_data_map: marketDataMap,
+      sharpe_ratio: performance.sharpe_ratio, // 向后兼容
       btc_eth_leverage: this.config.btcEthLeverage,
       altcoin_leverage: this.config.altcoinLeverage,
+      prompt_template: this.config.promptTemplate, // 传递提示词模板配置
+      performance: performance, // 完整的性能指标
     };
   }
 

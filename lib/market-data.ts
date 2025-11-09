@@ -121,7 +121,7 @@ async function fetchOpenInterest(symbol: string): Promise<{ current: number; cha
   }
 }
 
-async function fetchTicker(symbol: string): Promise<{ lastPrice: number; volume: number }> {
+async function fetchTicker(symbol: string): Promise<{ lastPrice: number; volume: number; buySellRatio: number }> {
   const url = `${BINANCE_BASE_URL}/fapi/v1/ticker/24hr?symbol=${symbol}`;
   const response = await fetchWithProxy(url);
 
@@ -130,9 +130,18 @@ async function fetchTicker(symbol: string): Promise<{ lastPrice: number; volume:
   }
 
   const data = await response.json();
+
+  // Calculate Buy/Sell Ratio
+  // BuySellRatio = 主动买入量 / 总成交量
+  // 范围 0-1: >0.5 买方强, <0.5 卖方强
+  const totalVolume = parseFloat(data.quoteVolume) || 1; // 防止除以0
+  const buyVolume = parseFloat(data.takerBuyQuoteAssetVolume) || 0;
+  const buySellRatio = totalVolume > 0 ? buyVolume / totalVolume : 0.5;
+
   return {
     lastPrice: parseFloat(data.lastPrice),
-    volume: parseFloat(data.quoteVolume),
+    volume: totalVolume,
+    buySellRatio: buySellRatio,
   };
 }
 
@@ -269,10 +278,11 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
 
     // 🎯 Split into batches to reduce concurrent load on proxy
     // Batch 1: K-lines (most important)
-    const [klines15m, klines1h, klines4h] = await Promise.all([
+    const [klines15m, klines1h, klines4h, klines1d] = await Promise.all([
       fetchKlines(normalizedSymbol, '15m', 100), // 15-minute candles
       fetchKlines(normalizedSymbol, '1h', 100),  // 1-hour candles
       fetchKlines(normalizedSymbol, '4h', 60),   // 4-hour candles
+      fetchKlines(normalizedSymbol, '1d', 100),  // 1-day candles
     ]);
 
     // Delay between batches to reduce proxy load
@@ -289,7 +299,8 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
       symbol: normalizedSymbol,
       '15m': klines15m.length,
       '1h': klines1h.length,
-      '4h': klines4h.length
+      '4h': klines4h.length,
+      '1d': klines1d.length
     });
 
     if (klines1h.length < 26) {
@@ -297,6 +308,9 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
     }
     if (klines4h.length < 26) {
       console.warn(`[getMarketData] ⚠️ WARNING: 4h K-line data insufficient (${klines4h.length} < 26) - MACD will be 0`);
+    }
+    if (klines1d.length < 26) {
+      console.warn(`[getMarketData] ⚠️ WARNING: 1d K-line data insufficient (${klines1d.length} < 26) - MACD will be 0`);
     }
 
     // Get Open Interest
@@ -310,11 +324,13 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
     const macd15m = calculateMACD(klines15m);
     const macd1h = calculateMACD(klines1h);
     const macd4h = calculateMACD(klines4h);
+    const macd1d = calculateMACD(klines1d);
 
     // Calculate multi-timeframe RSI
     const rsi15m = calculateRSI(klines15m, 14);
     const rsi1h = calculateRSI(klines1h, 14);
     const rsi4h = calculateRSI(klines4h, 14);
+    const rsi1d = calculateRSI(klines1d, 14);
 
     // Calculate EMA20 (based on 15m)
     const ema20 = calculateEMA(klines15m.map(k => k.close), 20);
@@ -378,11 +394,13 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
         macd_15m: macd15m,
         macd_1h: macd1h,
         macd_4h: macd4h,
+        macd_1d: macd1d,
 
         // Multi-timeframe RSI
         rsi_15m: rsi15m,
         rsi_1h: rsi1h,
         rsi_4h: rsi4h,
+        rsi_1d: rsi1d,
 
         // EMA
         ema20: ema20,
@@ -396,7 +414,7 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
         oi_change_pct: oi.change_pct,
 
         // Market sentiment
-        buy_sell_ratio: undefined,
+        buy_sell_ratio: ticker.buySellRatio,
         funding_rate: fundingRate,
 
         // OHLC (latest candle)
@@ -434,11 +452,13 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
         macd_15m: macd15m,
         macd_1h: macd1h,
         macd_4h: macd4h,
+        macd_1d: macd1d,
 
         // Multi-timeframe RSI
         rsi_15m: rsi15m,
         rsi_1h: rsi1h,
         rsi_4h: rsi4h,
+        rsi_1d: rsi1d,
 
         // EMA
         ema20: ema20,
@@ -452,7 +472,7 @@ export async function getMarketData(symbol: string): Promise<MarketData> {
         oi_change_pct: oi.change_pct,
 
         // Market sentiment
-        buy_sell_ratio: undefined,
+        buy_sell_ratio: ticker.buySellRatio,
         funding_rate: fundingRate,
 
         // OHLC (latest candle)

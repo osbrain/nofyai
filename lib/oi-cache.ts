@@ -14,7 +14,7 @@ interface OICache {
 
 class OIHistoryCache {
   private cachePath: string;
-  private cache: OICache;
+  private cache: OICache = {}; // 初始化为空对象
   private retentionHours: number = 72; // 保留72小时
 
   constructor() {
