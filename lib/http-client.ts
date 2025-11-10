@@ -64,10 +64,8 @@ export const fetchWithProxy = async (
   options: RequestInit = {}
 ): Promise<Response> => {
   if (proxyAgent) {
-    console.log(`🔄 [HTTP Client] Using proxy: ${proxyUrl}`);
-
+    // Use undici fetch with proxy agent (proxy configured at startup)
     try {
-      // Use undici fetch with proxy agent
       // @ts-expect-error - undici Response type doesn't fully overlap with browser Response
       return (await undiciFetch(url, {
         ...options,
@@ -75,11 +73,11 @@ export const fetchWithProxy = async (
         dispatcher: proxyAgent,
       })) as Response;
     } catch (error) {
-      console.error(`❌ [HTTP Client] Proxy connection failed:`, error);
+      console.error(`❌ [HTTP Client] Proxy connection failed for ${url}:`, error);
       throw error;
     }
   } else {
-    console.log(`📡 [HTTP Client] Direct connection (no proxy configured)`);
+    // Direct connection (no proxy configured)
     return fetch(url, options);
   }
 };

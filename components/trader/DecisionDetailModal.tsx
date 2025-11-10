@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslations } from '@/lib/i18n-context';
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DecisionDetailModalProps {
   decision: DecisionRecord | null;
@@ -17,6 +18,7 @@ type PromptTab = 'system' | 'input' | 'cot';
 
 export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalProps) {
   const t = useTranslations();
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<PromptTab>('cot');
 
   if (!decision) return null;
@@ -180,7 +182,8 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                     <span>{t.trader.cotAnalysis}</span>
                   </button>
                 )}
-                {decision.system_prompt && (
+                {/* System Prompt Tab - Admin Only */}
+                {decision.system_prompt && isAuthenticated && (
                   <button
                     onClick={() => setActiveTab('system')}
                     className={`flex-1 px-6 py-3 font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
@@ -218,7 +221,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                       </ReactMarkdown>
                     </div>
                   )}
-                  {activeTab === 'system' && decision.system_prompt && (
+                  {activeTab === 'system' && decision.system_prompt && isAuthenticated && (
                     <div className="p-4 prose prose-sm max-w-none prose-headings:text-purple-700 prose-p:text-text-secondary prose-strong:text-purple-600 prose-li:text-text-secondary prose-ul:list-disc prose-ol:list-decimal">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {decision.system_prompt}
