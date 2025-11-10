@@ -49,10 +49,14 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Create directories for data persistence
+# Create directories for data persistence with proper permissions
 RUN mkdir -p /app/decision_logs && \
     mkdir -p /app/data && \
-    chown -R nextjs:nodejs /app
+    chown -R nextjs:nodejs /app && \
+    chmod -R 755 /app/decision_logs /app/data
+
+# Note: If using volume mounts, ensure host directories have UID/GID 1001
+# Run on host: sudo chown -R 1001:1001 decision_logs data
 
 # Switch to non-root user
 USER nextjs

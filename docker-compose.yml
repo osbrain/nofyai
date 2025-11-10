@@ -17,11 +17,13 @@ services:
       # Mount config file (REQUIRED - contains API keys and credentials)
       - ./config.json:/app/config.json:ro
 
-      # Mount decision logs directory for persistence
-      - ./decision_logs:/app/decision_logs
+      # Use named volumes for data persistence (avoids permission issues)
+      - nofyai-decision-logs:/app/decision_logs
+      - nofyai-data:/app/data
 
-      # Mount data directory (for future use)
-      - ./data:/app/data
+      # Alternative: Use bind mounts (requires host permission fix)
+      # - ./decision_logs:/app/decision_logs
+      # - ./data:/app/data
 
       # Optional: Mount .env.local if you have proxy config
       # - ./.env.local:/app/.env.local:ro
@@ -45,3 +47,9 @@ services:
 networks:
   nofyai-network:
     driver: bridge
+
+volumes:
+  nofyai-decision-logs:
+    driver: local
+  nofyai-data:
+    driver: local
