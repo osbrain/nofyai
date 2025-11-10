@@ -50,13 +50,67 @@
 
 ## 🚀 快速开始
 
-### 前置要求
+### 方式一：Docker 部署（推荐生产环境）
 
+最快 5 分钟部署到服务器（CentOS/RHEL）：
+
+```bash
+# 1. 安装 Docker
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo systemctl start docker && sudo systemctl enable docker
+
+# 2. 克隆项目
+git clone https://github.com/your-username/nofyai.git
+cd nofyai
+
+# 3. 配置
+cp config.json.example config.json
+nano config.json  # 填入你的 API 密钥
+
+# 4. 一键部署
+./scripts/deploy.sh
+```
+
+访问 **http://服务器IP:3000** 查看仪表盘。
+
+#### 配置 HTTPS（可选）
+
+使用 Caddy 实现免费 HTTPS：
+
+```bash
+# 安装 Caddy
+sudo yum install -y yum-plugin-copr
+sudo yum copr enable @caddy/caddy -y
+sudo yum install -y caddy
+
+# 配置反向代理
+sudo cp Caddyfile /etc/caddy/Caddyfile
+sudo nano /etc/caddy/Caddyfile  # 修改为你的域名
+
+# 启动 Caddy
+sudo systemctl enable caddy && sudo systemctl start caddy
+
+# 开放端口
+sudo firewall-cmd --permanent --add-service={http,https}
+sudo firewall-cmd --reload
+```
+
+访问 **https://你的域名** - Caddy 会自动申请和续期 SSL 证书！
+
+📚 **详细文档**：
+- [Docker 快速开始](docs/QUICK_START.md)
+- [完整部署指南](docs/DEPLOYMENT.md)
+
+### 方式二：本地开发
+
+前置要求：
 - **Node.js** 18+ 和 npm
 - 交易所账户（Aster DEX / Binance / Hyperliquid）
 - AI API 密钥（DeepSeek / Qwen / OpenAI 等）
 
-### 安装步骤
+安装步骤：
 
 ```bash
 # 1. 克隆仓库
@@ -79,7 +133,7 @@ npm run dev
 
 访问 **http://localhost:3000** 即可查看仪表盘。
 
-### 生产环境部署
+### 生产环境部署（非 Docker）
 
 ```bash
 # 构建生产版本

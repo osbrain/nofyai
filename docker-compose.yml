@@ -1,0 +1,47 @@
+# ========================================
+# Docker Compose Configuration for NofyAI
+# ========================================
+
+version: '3.8'
+
+services:
+  nofyai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nofyai
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount config file (REQUIRED - contains API keys and credentials)
+      - ./config.json:/app/config.json:ro
+
+      # Mount decision logs directory for persistence
+      - ./decision_logs:/app/decision_logs
+
+      # Mount data directory (for future use)
+      - ./data:/app/data
+
+      # Optional: Mount .env.local if you have proxy config
+      # - ./.env.local:/app/.env.local:ro
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Shanghai
+    networks:
+      - nofyai-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  nofyai-network:
+    driver: bridge
