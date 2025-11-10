@@ -17,6 +17,8 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { EquityChart } from '@/components/trader/EquityChart';
 import { DecisionDetailModal } from '@/components/trader/DecisionDetailModal';
 import { PerformanceMetrics } from '@/components/trader/PerformanceMetrics';
+import { LoginModal } from '@/components/auth/LoginModal';
+import { useAuth } from '@/hooks/useAuth';
 import { formatUSD, formatPercent } from '@/lib/utils';
 import { DecisionRecord } from '@/types';
 import { useTranslations } from '@/lib/i18n-context';
@@ -28,7 +30,9 @@ interface TraderDetailViewProps {
 
 export function TraderDetailView({ traderId, showHeader = false }: TraderDetailViewProps) {
   const t = useTranslations();
+  const { isAuthenticated } = useAuth();
   const [selectedDecision, setSelectedDecision] = useState<DecisionRecord | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const { data: status } = useStatus(traderId);
   const { data: account } = useAccount(traderId);
@@ -67,19 +71,29 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                 </p>
               </div>
             </div>
-            <button
-              onClick={async () => {
-                try {
-                  await fetch(`/api/trade/start?trader_id=${traderId}`, { method: 'POST' });
-                  window.location.reload();
-                } catch (error) {
-                  alert(t.trader.failedToStartTrader);
-                }
-              }}
-              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm whitespace-nowrap"
-            >
-              {t.trader.startTradingButton}
-            </button>
+            {isAuthenticated ? (
+              <button
+                onClick={async () => {
+                  try {
+                    await fetch(`/api/trade/start?trader_id=${traderId}`, { method: 'POST' });
+                    window.location.reload();
+                  } catch (error) {
+                    alert(t.trader.failedToStartTrader);
+                  }
+                }}
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm whitespace-nowrap"
+              >
+                {t.trader.startTradingButton}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="px-6 py-2 bg-background-secondary border border-border text-text-secondary rounded-lg hover:border-primary hover:text-primary transition-colors font-semibold text-sm whitespace-nowrap flex items-center gap-2"
+              >
+                <span>🔒</span>
+                <span>{t.auth.loginToManage}</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -115,7 +129,16 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
           {showHeader && status.call_count > 0 && (
             <TooltipProvider>
               <div className="flex items-center gap-3">
-                {isRunning ? (
+                {!isAuthenticated ? (
+                  // Login button when not authenticated
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="px-4 py-1.5 bg-background-secondary border border-border text-text-secondary rounded-lg hover:border-primary hover:text-primary transition-colors font-semibold text-sm flex items-center gap-2"
+                  >
+                    <span>🔒</span>
+                    <span>{t.auth.loginToManage}</span>
+                  </button>
+                ) : isRunning ? (
                   <>
                     {/* Stop Button */}
                     <Tooltip>
@@ -496,36 +519,45 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                           </div>
                         </td>
                         <td className="py-2 text-center">
-                          <button
-                            onClick={async () => {
-                              if (!confirm(t.trader.confirmClosePosition.replace('{side}', pos.side).replace('{symbol}', pos.symbol))) {
-                                return;
-                              }
-                              try {
-                                const response = await fetch('/api/positions/close', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    trader_id: traderId,
-                                    symbol: pos.symbol,
-                                    side: pos.side,
-                                  }),
-                                });
-
-                                if (!response.ok) {
-                                  const error = await response.json();
-                                  throw new Error(error.error || t.trader.failedToClosePosition);
+                          {isAuthenticated ? (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(t.trader.confirmClosePosition.replace('{side}', pos.side).replace('{symbol}', pos.symbol))) {
+                                  return;
                                 }
+                                try {
+                                  const response = await fetch('/api/positions/close', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      trader_id: traderId,
+                                      symbol: pos.symbol,
+                                      side: pos.side,
+                                    }),
+                                  });
 
-                                window.location.reload();
-                              } catch (error) {
-                                alert(error instanceof Error ? error.message : t.trader.failedToClosePosition);
-                              }
-                            }}
-                            className="px-3 py-1 bg-danger/10 text-danger hover:bg-danger hover:text-white rounded transition-colors font-semibold"
-                          >
-                            {t.trader.close}
-                          </button>
+                                  if (!response.ok) {
+                                    const error = await response.json();
+                                    throw new Error(error.error || t.trader.failedToClosePosition);
+                                  }
+
+                                  window.location.reload();
+                                } catch (error) {
+                                  alert(error instanceof Error ? error.message : t.trader.failedToClosePosition);
+                                }
+                              }}
+                              className="px-3 py-1 bg-danger/10 text-danger hover:bg-danger hover:text-white rounded transition-colors font-semibold"
+                            >
+                              {t.trader.close}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setShowLoginModal(true)}
+                              className="px-3 py-1 bg-background-secondary border border-border text-text-secondary hover:border-primary hover:text-primary rounded transition-colors text-xs font-semibold"
+                            >
+                              🔒
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -546,6 +578,16 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
       <DecisionDetailModal
         decision={selectedDecision}
         onClose={() => setSelectedDecision(null)}
+      />
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          window.location.reload();
+        }}
       />
     </>
   );

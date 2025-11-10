@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTraderManager } from '@/lib/trader-manager';
+import { withAuth } from '@/lib/auth-middleware';
 
 /**
  * POST /api/positions/close
  * Manually close a position for a specific trader
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const body = await request.json();
     const { trader_id, symbol, side } = body;
@@ -41,4 +42,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

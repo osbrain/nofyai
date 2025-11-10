@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTraderManager } from '@/lib/trader-manager';
+import { withAuth } from '@/lib/auth-middleware';
 
 /**
  * POST /api/emergency-stop
  * Emergency stop: Stop all traders and close all positions
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const traderManager = await getTraderManager();
 
@@ -24,4 +25,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

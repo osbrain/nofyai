@@ -32,6 +32,12 @@ export class ConfigLoader {
    * Load configuration from JSON file
    */
   async load(): Promise<AppConfig> {
+    // 如果已经加载过，直接返回
+    if (this.config) {
+      console.log(`✅ Configuration already loaded, returning cached config`);
+      return this.config;
+    }
+
     try {
       const content = await fs.readFile(this.configPath, 'utf-8');
 
@@ -167,4 +173,27 @@ export function getConfigLoader(configPath?: string): ConfigLoader {
     configLoaderInstance = new ConfigLoader(configPath);
   }
   return configLoaderInstance;
+}
+
+/**
+ * Get system configuration (convenience function)
+ * Note: Configuration must be loaded first via getConfigLoader().load()
+ */
+export function getSystemConfig(): AppConfig {
+  const loader = getConfigLoader();
+  return loader.getConfig();
+}
+
+/**
+ * Get session timeout from config (convenience function)
+ * Returns session timeout in minutes (default: 60)
+ */
+export function getSessionTimeout(): number {
+  try {
+    const config = getSystemConfig();
+    return config.admin?.session_timeout_minutes || 60;
+  } catch (error) {
+    // If config not loaded yet, return default
+    return 60;
+  }
 }

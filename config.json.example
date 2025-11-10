@@ -1,4 +1,38 @@
 {
+  // ========================================
+  // Admin Authentication Configuration
+  // ========================================
+  // 用于保护启动、停止、平仓等敏感操作
+  //
+  // 安全建议：
+  // 1. 开发环境：可以使用明文密码，例如 "admin123"
+  // 2. 生产环境：强烈建议使用 bcrypt 哈希值
+  //
+  // 生成 bcrypt 哈希的方法：
+  //   npx tsx -e "import bcrypt from 'bcrypt'; bcrypt.hash('your-password', 10).then(console.log)"
+  //
+  // 工作原理：
+  // - 用户输入密码后，系统会生成一个 JWT session token
+  // - Token 存储在 httpOnly cookie 中（防止 XSS 攻击）
+  // - Token 会在配置的时间后自动过期
+  // - 前端会检查认证状态，未认证时隐藏敏感操作按钮
+  // - 后端 API 会验证 token，未认证的请求返回 401
+  "admin": {
+    // 管理员密码
+    // 支持两种格式：
+    // 1. 明文密码（开发环境）: "admin123"
+    // 2. bcrypt 哈希（生产环境）: "$2b$10$..."
+    "password": "change-me-in-production",
+
+    // 会话超时时间（分钟）
+    // 建议值：30-120 分钟
+    // 超时后需要重新登录
+    "session_timeout_minutes": 60
+  },
+
+  // ========================================
+  // Traders Configuration
+  // ========================================
   "traders": [
     {
       "id": "aster_deepseek",

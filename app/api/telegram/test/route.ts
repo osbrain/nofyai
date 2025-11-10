@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConfigLoader } from '@/lib/config-loader';
 import { TelegramNotifier } from '@/lib/telegram-notifier';
+import { withAuth } from '@/lib/auth-middleware';
 
 /**
  * POST /api/telegram/test
  * Test Telegram notification configuration
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const configLoader = getConfigLoader();
     const config = configLoader.getConfig();
@@ -39,4 +40,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

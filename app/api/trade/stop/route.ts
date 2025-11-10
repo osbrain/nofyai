@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getTraderManager } from '@/lib/trader-manager';
+import { withAuth } from '@/lib/auth-middleware';
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
   const traderId = searchParams.get('trader_id');
 
@@ -42,4 +43,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

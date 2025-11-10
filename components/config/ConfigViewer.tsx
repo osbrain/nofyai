@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useConfig } from '@/hooks/useTrading';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginModal } from '@/components/auth/LoginModal';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -10,6 +12,8 @@ import { useTranslations } from '@/lib/i18n-context';
 export function ConfigViewer() {
   const t = useTranslations();
   const { data: config, error, isLoading } = useConfig();
+  const { isAuthenticated } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [telegramTesting, setTelegramTesting] = useState(false);
   const [telegramTestResult, setTelegramTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -62,6 +66,7 @@ export function ConfigViewer() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       {/* System Configuration */}
       <Card className="p-6">
@@ -241,11 +246,22 @@ export function ConfigViewer() {
                       </div>
                     </div>
                     <button
-                      onClick={testTelegramNotification}
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          setShowLoginModal(true);
+                          return;
+                        }
+                        testTelegramNotification();
+                      }}
                       disabled={telegramTesting}
                       className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      {telegramTesting ? (
+                      {!isAuthenticated ? (
+                        <>
+                          <span>🔒</span>
+                          <span>{t.auth.loginToManage}</span>
+                        </>
+                      ) : telegramTesting ? (
                         <>
                           <span className="animate-spin">⏳</span>
                           <span>{t.config.sending}</span>
@@ -496,5 +512,15 @@ export function ConfigViewer() {
         </CardContent>
       </Card>
     </div>
+
+    {/* Login Modal */}
+    <LoginModal
+      isOpen={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+      onSuccess={() => {
+        setShowLoginModal(false);
+      }}
+    />
+    </>
   );
 }

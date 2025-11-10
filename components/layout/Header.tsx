@@ -1,10 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { LoginModal } from '@/components/auth/LoginModal';
+import { useAuth } from '@/hooks/useAuth';
 import { useTranslations } from '@/lib/i18n-context';
 
 export function Header() {
   const t = useTranslations();
+  const { isAuthenticated, logout } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.reload();
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
@@ -54,9 +64,54 @@ export function Header() {
               </svg>
               <span>{t.nav.github}</span>
             </a>
+
+            {/* Auth Status & Login/Logout */}
+            <div className="flex items-center gap-2 pl-2 border-l border-border">
+              {isAuthenticated ? (
+                <>
+                  {/* Logged In Status */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-success/10 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                    <span className="text-xs font-semibold text-success">{t.auth.admin}</span>
+                  </div>
+                  {/* Logout Button */}
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
+                  >
+                    {t.nav.logout}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Not Logged In Status */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-text-tertiary/10 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-text-tertiary"></div>
+                    <span className="text-xs font-semibold text-text-tertiary">{t.auth.guest}</span>
+                  </div>
+                  {/* Login Button */}
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                  >
+                    {t.nav.login}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false);
+          window.location.reload();
+        }}
+      />
     </header>
   );
 }

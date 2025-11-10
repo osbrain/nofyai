@@ -22,6 +22,34 @@ export const enUS: Locale = {
     documentation: 'Documentation',
     api: 'API',
     github: 'GitHub',
+    login: 'Login',
+    logout: 'Logout',
+  },
+
+  auth: {
+    // Status
+    admin: 'Admin',
+    guest: 'Guest',
+
+    // Login Modal
+    loginTitle: 'Admin Login',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Enter admin password',
+    loginButton: 'Login',
+    loggingIn: 'Logging in...',
+    loginToManage: 'Login to Manage',
+
+    // Messages
+    loginSuccess: 'Login successful',
+    loginFailed: 'Login failed',
+    invalidPassword: 'Invalid password',
+    loginRequired: 'Login required',
+    unauthorized: 'Unauthorized',
+    sessionExpired: 'Session expired',
+
+    // Info
+    loginInfo: 'Logging in will grant access to start/stop trading and close positions.',
+    loginInfoShort: 'Login to manage trading operations',
   },
 
   trader: {

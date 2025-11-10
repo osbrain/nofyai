@@ -20,6 +20,34 @@ export const zhCN = {
     documentation: '文档',
     api: 'API',
     github: 'GitHub',
+    login: '登录',
+    logout: '登出',
+  },
+
+  auth: {
+    // Status
+    admin: '管理员',
+    guest: '访客',
+
+    // Login Modal
+    loginTitle: '管理员登录',
+    passwordLabel: '密码',
+    passwordPlaceholder: '请输入管理员密码',
+    loginButton: '登录',
+    loggingIn: '登录中...',
+    loginToManage: '登录管理',
+
+    // Messages
+    loginSuccess: '登录成功',
+    loginFailed: '登录失败',
+    invalidPassword: '密码错误',
+    loginRequired: '需要登录',
+    unauthorized: '未授权',
+    sessionExpired: '会话已过期',
+
+    // Info
+    loginInfo: '登录后可启动/停止交易和平仓',
+    loginInfoShort: '登录后可管理交易操作',
   },
 
   trader: {
