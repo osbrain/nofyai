@@ -15,16 +15,36 @@ import { EquityPoint } from '@/types';
 import { formatUSD, formatPercent } from '@/lib/utils';
 import { useTranslations } from '@/lib/i18n-context';
 
+export type TimeRange = '24h' | '7d' | '30d' | 'all';
+
 interface EquityChartProps {
   data: EquityPoint[];
   initialBalance: number;
+  timeRange?: TimeRange;
+  onTimeRangeChange?: (range: TimeRange) => void;
+  showTimeSelector?: boolean;
 }
 
-type TimeRange = '24h' | '7d' | '30d' | 'all';
-
-export function EquityChart({ data, initialBalance }: EquityChartProps) {
+export function EquityChart({
+  data,
+  initialBalance,
+  timeRange: externalTimeRange,
+  onTimeRangeChange,
+  showTimeSelector = true
+}: EquityChartProps) {
   const t = useTranslations();
-  const [timeRange, setTimeRange] = useState<TimeRange>('7d');
+  const [internalTimeRange, setInternalTimeRange] = useState<TimeRange>('7d');
+
+  // Use external timeRange if provided, otherwise use internal state
+  const timeRange = externalTimeRange ?? internalTimeRange;
+
+  const handleTimeRangeChange = (range: TimeRange) => {
+    if (onTimeRangeChange) {
+      onTimeRangeChange(range);
+    } else {
+      setInternalTimeRange(range);
+    }
+  };
 
   // Sort and filter data by timestamp and selected time range
   const sortedData = useMemo(() => {
@@ -203,31 +223,30 @@ export function EquityChart({ data, initialBalance }: EquityChartProps) {
   const lineColor = isProfitable ? '#16C784' : '#EA3943';
 
   return (
-    <div className="w-full space-y-3">
-      {/* Time Range Selector */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-medium text-text-secondary">
-          {t.trader.equityHistory || 'Equity History'}
+    <div className="w-full space-y-2 md:space-y-3">
+      {/* Time Range Selector - Conditional */}
+      {showTimeSelector && (
+        <div className="flex justify-end">
+          <div className="flex gap-1 bg-background-secondary rounded-lg p-1">
+            {(['24h', '7d', '30d', 'all'] as const).map((range) => (
+              <button
+                key={range}
+                onClick={() => handleTimeRangeChange(range)}
+                className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-md transition-all ${
+                  timeRange === range
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-text-tertiary hover:text-text-secondary'
+                }`}
+              >
+                {range === 'all' ? 'All' : range.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-1 bg-background-secondary rounded-lg p-1">
-          {(['24h', '7d', '30d', 'all'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                timeRange === range
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-text-tertiary hover:text-text-secondary'
-              }`}
-            >
-              {range === 'all' ? 'All' : range.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
-      {/* Chart Container */}
-      <div className="w-full h-[400px]">
+      {/* Chart Container - Responsive height */}
+      <div className="w-full h-[200px] md:h-[400px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={sortedData}

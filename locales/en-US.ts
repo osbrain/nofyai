@@ -261,6 +261,8 @@ export const enUS: Locale = {
 
   config: {
     title: 'System Configuration',
+    pageTitle: 'System Configuration',
+    pageDescription: 'View current system configuration and trader settings',
     traders: 'Traders',
     leverage: 'Leverage Settings',
     riskManagement: 'Risk Management',

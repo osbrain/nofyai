@@ -158,6 +158,7 @@ export class ConfigLoader {
       traderId: traderConfig.id,
       traderName: traderConfig.name,
       telegram: this.config.telegram,
+      candidateCoins: this.config.use_default_coins ? this.config.default_coins : undefined,
     };
   }
 }

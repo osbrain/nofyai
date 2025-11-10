@@ -33,6 +33,7 @@ export interface TradingEngineConfig {
   traderId?: string; // Optional trader ID for logs
   traderName?: string; // Optional trader name for notifications
   telegram?: TelegramConfig; // Optional Telegram notification config
+  candidateCoins?: string[]; // Optional candidate coins from config
 }
 
 export interface TradingSession {
@@ -292,10 +293,11 @@ export class TradingEngine {
     // Add symbols from existing positions
     positionInfos.forEach(pos => symbolsToFetch.add(pos.symbol));
 
-    // Always add default trading symbols (regardless of positions)
-    DEFAULT_SYMBOLS.forEach(s => symbolsToFetch.add(s));
+    // Add candidate symbols from config (or default list)
+    const candidateCoins = this.config.candidateCoins || DEFAULT_SYMBOLS;
+    candidateCoins.forEach(s => symbolsToFetch.add(s));
 
-    console.log(`📊 Fetching market data for ${symbolsToFetch.size} symbols...`);
+    console.log(`📊 Fetching market data for ${symbolsToFetch.size} symbols (candidates: ${candidateCoins.join(', ')})...`);
 
     try {
       const binanceData = await getMarketDataBatch(Array.from(symbolsToFetch));

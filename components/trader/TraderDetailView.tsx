@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { EquityChart } from '@/components/trader/EquityChart';
+import { EquityChart, TimeRange } from '@/components/trader/EquityChart';
 import { DecisionDetailModal } from '@/components/trader/DecisionDetailModal';
 import { PerformanceMetrics } from '@/components/trader/PerformanceMetrics';
 import { LoginModal } from '@/components/auth/LoginModal';
@@ -33,6 +33,7 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
   const { isAuthenticated } = useAuth();
   const [selectedDecision, setSelectedDecision] = useState<DecisionRecord | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [chartTimeRange, setChartTimeRange] = useState<TimeRange>('7d');
 
   const { data: status } = useStatus(traderId);
   const { data: account } = useAccount(traderId);
@@ -58,15 +59,15 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
     <>
       {/* Not Started Banner */}
       {!isRunning && status.call_count === 0 && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-primary/10 to-accent-purple/10 border-2 border-primary/30 rounded-xl">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="text-3xl">🚀</div>
+        <div className="mb-4 md:mb-6 p-3 md:p-4 bg-gradient-to-r from-primary/10 to-accent-purple/10 border-2 border-primary/30 rounded-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="text-2xl md:text-3xl">🚀</div>
               <div>
-                <h3 className="text-base font-bold text-text-primary mb-1">
+                <h3 className="text-sm md:text-base font-bold text-text-primary mb-1">
                   {t.trader.traderNotStartedTitle}
                 </h3>
-                <p className="text-xs text-text-secondary">
+                <p className="text-[10px] md:text-xs text-text-secondary">
                   {t.trader.traderNotStartedDesc}
                 </p>
               </div>
@@ -81,14 +82,14 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                     alert(t.trader.failedToStartTrader);
                   }
                 }}
-                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm whitespace-nowrap"
+                className="w-full sm:w-auto px-4 md:px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-xs md:text-sm whitespace-nowrap"
               >
                 {t.trader.startTradingButton}
               </button>
             ) : (
               <button
                 onClick={() => setShowLoginModal(true)}
-                className="px-6 py-2 bg-background-secondary border border-border text-text-secondary rounded-lg hover:border-primary hover:text-primary transition-colors font-semibold text-sm whitespace-nowrap flex items-center gap-2"
+                className="w-full sm:w-auto px-4 md:px-6 py-2 bg-background-secondary border border-border text-text-secondary rounded-lg hover:border-primary hover:text-primary transition-colors font-semibold text-xs md:text-sm whitespace-nowrap flex items-center justify-center gap-2"
               >
                 <span>🔒</span>
                 <span>{t.auth.loginToManage}</span>
@@ -99,24 +100,24 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
       )}
 
       {/* Trader Header - Compact */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center text-2xl shadow-lg">
+      <div className="mb-3 md:mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center text-xl md:text-2xl shadow-lg flex-shrink-0">
               🤖
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-text-primary">{traderId}</h1>
-              <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg md:text-2xl font-bold text-text-primary truncate">{traderId}</h1>
+              <div className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs text-text-secondary flex-wrap">
                 <span>{t.trader.ai}: <span className="font-semibold text-primary">{status.ai_provider?.toUpperCase() || 'UNKNOWN'}</span></span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span>{t.trader.cyclesLabel}: {status.call_count || 0}</span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span>{t.trader.runtimeLabel}: {status.runtime_minutes || 0}m</span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 {/* Status Indicator */}
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-success animate-pulse' : 'bg-text-tertiary'}`}></div>
+                <div className="flex items-center gap-1 md:gap-1.5">
+                  <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${isRunning ? 'bg-success animate-pulse' : 'bg-text-tertiary'}`}></div>
                   <span className={`font-medium ${isRunning ? 'text-success' : 'text-text-tertiary'}`}>
                     {isRunning ? t.trader.liveTrading : t.trader.offline}
                   </span>
@@ -128,15 +129,16 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
           {/* Control Buttons - Only shown when showHeader=true and trader has been started at least once */}
           {showHeader && status.call_count > 0 && (
             <TooltipProvider>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto overflow-x-auto pb-1">
                 {!isAuthenticated ? (
                   // Login button when not authenticated
                   <button
                     onClick={() => setShowLoginModal(true)}
-                    className="px-4 py-1.5 bg-background-secondary border border-border text-text-secondary rounded-lg hover:border-primary hover:text-primary transition-colors font-semibold text-sm flex items-center gap-2"
+                    className="px-3 md:px-4 py-1.5 bg-background-secondary border border-border text-text-secondary rounded-lg hover:border-primary hover:text-primary transition-colors font-semibold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
                   >
                     <span>🔒</span>
-                    <span>{t.auth.loginToManage}</span>
+                    <span className="hidden sm:inline">{t.auth.loginToManage}</span>
+                    <span className="sm:hidden">{t.nav.login}</span>
                   </button>
                 ) : isRunning ? (
                   <>
@@ -164,10 +166,11 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                               alert(error instanceof Error ? error.message : t.trader.failedToStopTrader);
                             }
                           }}
-                          className="px-4 py-1.5 bg-warning text-white rounded-lg hover:bg-warning/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                          className="px-3 md:px-4 py-1.5 bg-warning text-white rounded-lg hover:bg-warning/90 transition-colors font-semibold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
                         >
                           <span>⏸️</span>
-                          <span>{t.trader.stopTrading}</span>
+                          <span className="hidden sm:inline">{t.trader.stopTrading}</span>
+                          <span className="sm:hidden">Stop</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -199,10 +202,11 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                               alert(error instanceof Error ? error.message : t.trader.failedToEmergencyStop);
                             }
                           }}
-                          className="px-4 py-1.5 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                          className="px-3 md:px-4 py-1.5 bg-danger text-white rounded-lg hover:bg-danger/90 transition-colors font-semibold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
                         >
                           <span>🚨</span>
-                          <span>{t.trader.emergencyStop}</span>
+                          <span className="hidden sm:inline">{t.trader.emergencyStop}</span>
+                          <span className="sm:hidden">Emergency</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -230,10 +234,11 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                         alert(error instanceof Error ? error.message : t.trader.failedToStartTrader);
                       }
                     }}
-                    className="px-4 py-1.5 bg-success text-white rounded-lg hover:bg-success/90 transition-colors font-semibold text-sm flex items-center gap-2"
+                    className="px-3 md:px-4 py-1.5 bg-success text-white rounded-lg hover:bg-success/90 transition-colors font-semibold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
                   >
                     <span>▶️</span>
-                    <span>{t.trader.startTrading}</span>
+                    <span className="hidden sm:inline">{t.trader.startTrading}</span>
+                    <span className="sm:hidden">Start</span>
                   </button>
                 )}
               </div>
@@ -243,19 +248,19 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
       </div>
 
       {/* Account Overview - Top Row */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <Card className="p-3">
-          <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.totalEquity}</div>
-          <div className="text-xl font-bold text-text-primary">{formatUSD(account.total_equity)}</div>
-          <div className={`text-xs font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6">
+        <Card className="p-2 md:p-3">
+          <div className="text-[10px] md:text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.totalEquity}</div>
+          <div className="text-base md:text-xl font-bold text-text-primary truncate">{formatUSD(account.total_equity)}</div>
+          <div className={`text-[10px] md:text-xs font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
             {formatPercent(account.total_pnl_pct)}
           </div>
         </Card>
 
-        <Card className="p-3">
-          <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.available}</div>
-          <div className="text-xl font-bold text-text-primary">{formatUSD(account.available_balance)}</div>
-          <div className="text-xs text-text-tertiary">
+        <Card className="p-2 md:p-3">
+          <div className="text-[10px] md:text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.available}</div>
+          <div className="text-base md:text-xl font-bold text-text-primary truncate">{formatUSD(account.available_balance)}</div>
+          <div className="text-[10px] md:text-xs text-text-tertiary">
             {account.total_equity > 0
               ? `${((account.available_balance / account.total_equity) * 100).toFixed(1)}% ${t.trader.free}`
               : `100% ${t.trader.free}`
@@ -263,51 +268,51 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
           </div>
         </Card>
 
-        <Card className="p-3">
-          <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.totalPnL}</div>
-          <div className={`text-xl font-bold ${isProfitable ? 'text-success' : 'text-danger'}`}>
+        <Card className="p-2 md:p-3">
+          <div className="text-[10px] md:text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.totalPnL}</div>
+          <div className={`text-base md:text-xl font-bold ${isProfitable ? 'text-success' : 'text-danger'} truncate`}>
             {isProfitable ? '+' : ''}{formatUSD(account.total_pnl)}
           </div>
-          <div className={`text-xs font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
+          <div className={`text-[10px] md:text-xs font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
             {formatPercent(account.total_pnl_pct)}
           </div>
         </Card>
 
-        <Card className="p-3">
-          <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.positions}</div>
-          <div className="text-xl font-bold text-text-primary">{account.position_count}</div>
-          <div className="text-xs text-text-tertiary">
+        <Card className="p-2 md:p-3">
+          <div className="text-[10px] md:text-xs text-text-secondary uppercase tracking-wider mb-1">{t.trader.positions}</div>
+          <div className="text-base md:text-xl font-bold text-text-primary">{account.position_count}</div>
+          <div className="text-[10px] md:text-xs text-text-tertiary">
             {t.trader.margin}: {(account.margin_used_pct || 0).toFixed(1)}%
           </div>
         </Card>
       </div>
 
       {/* Two Column Layout - Adjusted ratio */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
         {/* LEFT COLUMN - Performance & Decisions Tabs (2/5 width) */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 md:space-y-6">
           <Card className="overflow-hidden h-full">
             <Tabs defaultValue="performance">
-              <TabsList className="w-full">
+              <TabsList className="w-full text-xs md:text-sm">
                 <TabsTrigger value="performance" className="flex-1">{t.trader.performance}</TabsTrigger>
                 <TabsTrigger value="decisions" className="flex-1">{t.trader.decisions}</TabsTrigger>
                 <TabsTrigger value="trades" className="flex-1">{t.trader.trades}</TabsTrigger>
               </TabsList>
 
               {/* Performance Tab */}
-              <TabsContent value="performance" className="p-4">
+              <TabsContent value="performance" className="p-2 md:p-4">
                 {performance ? (
                   <PerformanceMetrics performance={performance} />
                 ) : (
-                  <div className="text-center py-12 text-text-tertiary">
-                    <div className="text-4xl mb-2">📊</div>
-                    <div className="text-sm">{t.trader.loadingPerformance}</div>
+                  <div className="text-center py-8 md:py-12 text-text-tertiary">
+                    <div className="text-3xl md:text-4xl mb-2">📊</div>
+                    <div className="text-xs md:text-sm">{t.trader.loadingPerformance}</div>
                   </div>
                 )}
               </TabsContent>
 
               {/* Decisions Tab */}
-              <TabsContent value="decisions" className="p-4">
+              <TabsContent value="decisions" className="p-2 md:p-4">
                 {decisions && decisions.length > 0 ? (
                   <div className="space-y-3 max-h-[600px] overflow-y-auto">
                     {decisions.map((decision, i) => (
@@ -341,16 +346,16 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-text-tertiary">
-                    <div className="text-4xl mb-2">🧠</div>
-                    <div className="font-semibold mb-1 text-sm">{t.trader.noDecisionsYet}</div>
-                    <div className="text-xs">{t.trader.decisionsWillAppear}</div>
+                  <div className="text-center py-8 md:py-12 text-text-tertiary">
+                    <div className="text-3xl md:text-4xl mb-2">🧠</div>
+                    <div className="font-semibold mb-1 text-xs md:text-sm">{t.trader.noDecisionsYet}</div>
+                    <div className="text-[10px] md:text-xs">{t.trader.decisionsWillAppear}</div>
                   </div>
                 )}
               </TabsContent>
 
               {/* Trades Tab */}
-              <TabsContent value="trades" className="p-4">
+              <TabsContent value="trades" className="p-2 md:p-4">
                 {decisions && decisions.length > 0 ? (
                   (() => {
                     // Extract all trade actions (open/close) from decisions
@@ -361,27 +366,47 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                       action: string;
                       actionLabel: string;
                       actionType: 'buy' | 'sell';
+                      position?: {
+                        entry_price: number;
+                        mark_price: number;
+                        quantity: number;
+                        leverage: number;
+                        unrealized_pnl: number;
+                        unrealized_pnl_pct: number;
+                      };
                     }> = [];
 
                     decisions.forEach(decision => {
                       decision.decisions.forEach(d => {
-                        if (d.action === 'open_long' || d.action === 'open_short' ||
-                            d.action === 'close_long' || d.action === 'close_short') {
+                        // Only show close actions (平多/平空)
+                        if (d.action === 'close_long' || d.action === 'close_short') {
                           let actionLabel = '';
                           let actionType: 'buy' | 'sell' = 'buy';
 
-                          if (d.action === 'open_long') {
-                            actionLabel = t.trader.openLong;
-                            actionType = 'buy';
-                          } else if (d.action === 'open_short') {
-                            actionLabel = t.trader.openShort;
-                            actionType = 'sell';
-                          } else if (d.action === 'close_long') {
+                          if (d.action === 'close_long') {
                             actionLabel = t.trader.closeLong;
                             actionType = 'sell';
                           } else if (d.action === 'close_short') {
                             actionLabel = t.trader.closeShort;
                             actionType = 'buy';
+                          }
+
+                          // Find the corresponding position from snapshot
+                          const targetSide = d.action === 'close_long' ? 'long' : 'short';
+                          const position = decision.positions_snapshot?.find(
+                            p => p.symbol === d.symbol && p.side === targetSide
+                          );
+
+                          let positionInfo = undefined;
+                          if (position) {
+                            positionInfo = {
+                              entry_price: position.entry_price,
+                              mark_price: position.mark_price,
+                              quantity: position.quantity,
+                              leverage: position.leverage,
+                              unrealized_pnl: position.unrealized_pnl,
+                              unrealized_pnl_pct: position.unrealized_pnl_pct,
+                            };
                           }
 
                           allTrades.push({
@@ -391,6 +416,7 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                             action: d.action,
                             actionLabel,
                             actionType,
+                            position: positionInfo,
                           });
                         }
                       });
@@ -401,58 +427,93 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                         {allTrades.map((trade, i) => (
                           <div
                             key={i}
-                            className="flex items-center justify-between p-3 bg-background-secondary rounded-lg border border-border hover:border-primary/30 transition-all"
+                            className="p-3 bg-background-secondary rounded-lg border border-border hover:border-primary/30 transition-all"
                           >
-                            <div className="flex items-center gap-3">
-                              {/* Action Icon */}
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold ${
-                                trade.actionType === 'buy'
-                                  ? 'bg-success/10 text-success'
-                                  : 'bg-danger/10 text-danger'
-                              }`}>
-                                {trade.actionType === 'buy' ? '↗' : '↘'}
-                              </div>
-
-                              {/* Trade Details */}
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className={`text-sm font-bold ${
-                                    trade.actionType === 'buy' ? 'text-success' : 'text-danger'
-                                  }`}>
-                                    {trade.actionLabel}
-                                  </span>
-                                  <span className="text-sm font-semibold text-text-primary">
-                                    {trade.symbol}
-                                  </span>
+                            {/* Header Row */}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                {/* Action Icon */}
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base font-bold ${
+                                  trade.actionType === 'buy'
+                                    ? 'bg-success/10 text-success'
+                                    : 'bg-danger/10 text-danger'
+                                }`}>
+                                  {trade.actionType === 'buy' ? '↗' : '↘'}
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-text-secondary">
-                                  <span>{t.trader.cycle} #{trade.cycle}</span>
-                                  <span>•</span>
-                                  <span>{new Date(trade.timestamp).toLocaleString()}</span>
+
+                                {/* Symbol and Action */}
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-text-primary">
+                                      {trade.symbol}
+                                    </span>
+                                    <Badge variant={trade.actionType === 'buy' ? 'success' : 'danger'} className="text-[9px] md:text-[10px]">
+                                      {trade.actionLabel}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
+                                    <span>{t.trader.cycle} #{trade.cycle}</span>
+                                    <span>•</span>
+                                    <span>{new Date(trade.timestamp).toLocaleString()}</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Badge */}
-                            <Badge variant={trade.actionType === 'buy' ? 'success' : 'danger'}>
-                              {trade.actionType === 'buy' ? t.trader.buy : t.trader.sell}
-                            </Badge>
+                            {/* Position Details (if available) */}
+                            {trade.position && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 pt-3 border-t border-border">
+                                <div>
+                                  <div className="text-[10px] text-text-tertiary">{t.trader.entryPrice}</div>
+                                  <div className="text-xs font-semibold text-text-primary font-mono">
+                                    {formatUSD(trade.position.entry_price)}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] text-text-tertiary">{t.trader.currentPrice}</div>
+                                  <div className="text-xs font-semibold text-text-primary font-mono">
+                                    {formatUSD(trade.position.mark_price)}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] text-text-tertiary">{t.trader.quantity}</div>
+                                  <div className="text-xs font-semibold text-text-primary">
+                                    {trade.position.quantity.toFixed(4)}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] text-text-tertiary">{t.trader.lev}</div>
+                                  <div className="text-xs font-semibold text-primary">
+                                    {trade.position.leverage}x
+                                  </div>
+                                </div>
+                                <div className="col-span-2">
+                                  <div className="text-[10px] text-text-tertiary">{t.trader.totalPnL}</div>
+                                  <div className={`text-sm font-bold ${trade.position.unrealized_pnl >= 0 ? 'text-success' : 'text-danger'}`}>
+                                    {trade.position.unrealized_pnl >= 0 ? '+' : ''}{formatUSD(trade.position.unrealized_pnl)}
+                                    <span className="text-xs ml-1">
+                                      ({formatPercent(trade.position.unrealized_pnl_pct)})
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 text-text-tertiary">
-                        <div className="text-4xl mb-2">📊</div>
-                        <div className="font-semibold mb-1 text-sm">{t.trader.noTradesYet}</div>
-                        <div className="text-xs">{t.trader.tradesWillAppear}</div>
+                      <div className="text-center py-8 md:py-12 text-text-tertiary">
+                        <div className="text-3xl md:text-4xl mb-2">📊</div>
+                        <div className="font-semibold mb-1 text-xs md:text-sm">{t.trader.noTradesYet}</div>
+                        <div className="text-[10px] md:text-xs">{t.trader.tradesWillAppear}</div>
                       </div>
                     );
                   })()
                 ) : (
-                  <div className="text-center py-12 text-text-tertiary">
-                    <div className="text-4xl mb-2">📊</div>
-                    <div className="font-semibold mb-1 text-sm">{t.trader.noTradesYet}</div>
-                    <div className="text-xs">{t.trader.tradesWillAppear}</div>
+                  <div className="text-center py-8 md:py-12 text-text-tertiary">
+                    <div className="text-3xl md:text-4xl mb-2">📊</div>
+                    <div className="font-semibold mb-1 text-xs md:text-sm">{t.trader.noTradesYet}</div>
+                    <div className="text-[10px] md:text-xs">{t.trader.tradesWillAppear}</div>
                   </div>
                 )}
               </TabsContent>
@@ -461,64 +522,86 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
         </div>
 
         {/* RIGHT COLUMN - Chart & Positions (3/5 width) */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-4 md:space-y-6">
           {/* Equity Chart - Large */}
-          <Card className="p-4">
-            <h3 className="text-sm font-bold text-text-primary mb-3">{t.trader.equityPerformance}</h3>
+          <Card className="p-2 md:p-4">
+            {/* Title and Time Selector in same row */}
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <h3 className="text-xs md:text-sm font-bold text-text-primary">{t.trader.equityPerformance}</h3>
+              {/* Time Range Selector */}
+              {equityHistory && equityHistory.length > 0 && (
+                <div className="flex gap-1 bg-background-secondary rounded-lg p-1">
+                  {(['24h', '7d', '30d', 'all'] as const).map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setChartTimeRange(range)}
+                      className={`px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium rounded-md transition-all ${
+                        chartTimeRange === range
+                          ? 'bg-white text-primary shadow-sm'
+                          : 'text-text-tertiary hover:text-text-secondary'
+                      }`}
+                    >
+                      {range === 'all' ? 'All' : range.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {equityHistory && equityHistory.length > 0 ? (
-              <div className="h-[400px]">
-                <EquityChart
-                  data={equityHistory}
-                  initialBalance={status.initial_balance}
-                />
-              </div>
+              <EquityChart
+                data={equityHistory}
+                initialBalance={status.initial_balance}
+                timeRange={chartTimeRange}
+                onTimeRangeChange={setChartTimeRange}
+                showTimeSelector={false}
+              />
             ) : (
-              <div className="h-[400px] flex items-center justify-center text-text-tertiary">
+              <div className="h-[200px] md:h-[400px] flex items-center justify-center text-text-tertiary">
                 <div className="text-center">
-                  <div className="text-5xl mb-3 opacity-30">📈</div>
-                  <div className="text-sm font-semibold mb-1">{t.trader.noEquityHistory}</div>
-                  <div className="text-xs">{t.trader.chartWillAppear}</div>
+                  <div className="text-3xl md:text-5xl mb-2 md:mb-3 opacity-30">📈</div>
+                  <div className="text-xs md:text-sm font-semibold mb-1">{t.trader.noEquityHistory}</div>
+                  <div className="text-[10px] md:text-xs">{t.trader.chartWillAppear}</div>
                 </div>
               </div>
             )}
           </Card>
 
           {/* Positions Table - Compact */}
-          <Card className="p-4">
-            <h3 className="text-sm font-bold text-text-primary mb-3">{t.trader.currentPositions}</h3>
+          <Card className="p-2 md:p-4">
+            <h3 className="text-xs md:text-sm font-bold text-text-primary mb-2 md:mb-3">{t.trader.currentPositions}</h3>
             {positions && positions.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+              <div className="overflow-x-auto -mx-3 md:mx-0">
+                <table className="w-full text-[10px] md:text-xs min-w-[600px] md:min-w-0">
                   <thead className="border-b border-border">
                     <tr className="text-left">
-                      <th className="pb-2 font-semibold text-text-secondary">{t.trader.symbol}</th>
-                      <th className="pb-2 font-semibold text-text-secondary">{t.trader.side}</th>
-                      <th className="pb-2 font-semibold text-text-secondary">{t.trader.entryPrice}</th>
-                      <th className="pb-2 font-semibold text-text-secondary">{t.trader.lev}</th>
-                      <th className="pb-2 font-semibold text-text-secondary text-right">{t.trader.unrealizedPnL}</th>
-                      <th className="pb-2 font-semibold text-text-secondary text-center">{t.trader.action}</th>
+                      <th className="pb-2 font-semibold text-text-secondary px-2 md:px-0">{t.trader.symbol}</th>
+                      <th className="pb-2 font-semibold text-text-secondary px-2 md:px-0">{t.trader.side}</th>
+                      <th className="pb-2 font-semibold text-text-secondary px-2 md:px-0">{t.trader.entryPrice}</th>
+                      <th className="pb-2 font-semibold text-text-secondary px-2 md:px-0">{t.trader.lev}</th>
+                      <th className="pb-2 font-semibold text-text-secondary text-right px-2 md:px-0">{t.trader.unrealizedPnL}</th>
+                      <th className="pb-2 font-semibold text-text-secondary text-center px-2 md:px-0">{t.trader.action}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {positions.map((pos, i) => (
                       <tr key={i} className="border-b border-border/50">
-                        <td className="py-2 font-semibold">{pos.symbol}</td>
-                        <td className="py-2">
-                          <Badge variant={pos.side === 'long' ? 'success' : 'danger'}>
+                        <td className="py-2 font-semibold px-2 md:px-0">{pos.symbol}</td>
+                        <td className="py-2 px-2 md:px-0">
+                          <Badge variant={pos.side === 'long' ? 'success' : 'danger'} className="text-[9px] md:text-[10px]">
                             {pos.side.toUpperCase()}
                           </Badge>
                         </td>
-                        <td className="py-2 font-mono">{formatUSD(pos.entry_price)}</td>
-                        <td className="py-2 font-semibold text-primary">{pos.leverage}x</td>
-                        <td className={`py-2 text-right ${pos.unrealized_pnl >= 0 ? 'text-success' : 'text-danger'}`}>
+                        <td className="py-2 font-mono px-2 md:px-0">{formatUSD(pos.entry_price)}</td>
+                        <td className="py-2 font-semibold text-primary px-2 md:px-0">{pos.leverage}x</td>
+                        <td className={`py-2 text-right ${pos.unrealized_pnl >= 0 ? 'text-success' : 'text-danger'} px-2 md:px-0`}>
                           <div className="font-semibold">
                             {pos.unrealized_pnl >= 0 ? '+' : ''}{formatUSD(pos.unrealized_pnl)}
                           </div>
-                          <div className="text-xs opacity-75">
+                          <div className="text-[9px] md:text-xs opacity-75">
                             ({formatPercent(pos.unrealized_pnl_pct)})
                           </div>
                         </td>
-                        <td className="py-2 text-center">
+                        <td className="py-2 text-center px-2 md:px-0">
                           {isAuthenticated ? (
                             <button
                               onClick={async () => {
@@ -546,14 +629,14 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                                   alert(error instanceof Error ? error.message : t.trader.failedToClosePosition);
                                 }
                               }}
-                              className="px-3 py-1 bg-danger/10 text-danger hover:bg-danger hover:text-white rounded transition-colors font-semibold"
+                              className="px-2 md:px-3 py-1 bg-danger/10 text-danger hover:bg-danger hover:text-white rounded transition-colors font-semibold text-[9px] md:text-xs"
                             >
                               {t.trader.close}
                             </button>
                           ) : (
                             <button
                               onClick={() => setShowLoginModal(true)}
-                              className="px-3 py-1 bg-background-secondary border border-border text-text-secondary hover:border-primary hover:text-primary rounded transition-colors text-xs font-semibold"
+                              className="px-2 md:px-3 py-1 bg-background-secondary border border-border text-text-secondary hover:border-primary hover:text-primary rounded transition-colors text-[9px] md:text-xs font-semibold"
                             >
                               🔒
                             </button>
@@ -565,9 +648,9 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-text-tertiary">
-                <div className="text-4xl mb-2 opacity-30">📊</div>
-                <div className="text-xs">{t.trader.noActivePositions}</div>
+              <div className="text-center py-6 md:py-8 text-text-tertiary">
+                <div className="text-3xl md:text-4xl mb-2 opacity-30">📊</div>
+                <div className="text-[10px] md:text-xs">{t.trader.noActivePositions}</div>
               </div>
             )}
           </Card>

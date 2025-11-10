@@ -259,6 +259,8 @@ export const zhCN = {
 
   config: {
     title: '系统配置',
+    pageTitle: '系统配置',
+    pageDescription: '查看当前系统配置和交易者设置',
     traders: '交易者',
     leverage: '杠杆设置',
     riskManagement: '风险管理',

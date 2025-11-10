@@ -48,28 +48,29 @@ export default function HomePage() {
   const currentTrader = traders.find(t => t.id === selectedTraderId);
 
   return (
-    <div className="w-full px-6 py-8">
+    <div className="w-full px-4 md:px-6 py-4 md:py-8">
       {hasTraders ? (
         <>
           {/* Trader Tabs - Only show if multiple traders */}
           {!hasSingleTrader && (
-            <div className="mb-6">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            <div className="mb-4 md:mb-6">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {traders.map((trader) => (
                   <button
                     key={trader.id}
                     onClick={() => setSelectedTraderId(trader.id)}
-                    className={`px-6 py-3 rounded-lg font-semibold text-sm whitespace-nowrap transition-all ${
+                    className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold text-xs md:text-sm whitespace-nowrap transition-all ${
                       selectedTraderId === trader.id
                         ? 'bg-gradient-to-r from-primary to-accent-purple text-white shadow-lg'
                         : 'bg-white text-text-secondary hover:bg-background-secondary border border-border'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span>🤖</span>
-                      <span>{trader.name}</span>
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                      <span className="text-sm md:text-base">🤖</span>
+                      <span className="hidden sm:inline">{trader.name}</span>
+                      <span className="sm:hidden">{trader.id}</span>
                       {trader.enabled && (
-                        <Badge variant="success" className="ml-1">
+                        <Badge variant="success" className="ml-1 text-[10px] md:text-xs">
                           {t.config.enabled}
                         </Badge>
                       )}
@@ -86,17 +87,17 @@ export default function HomePage() {
           )}
         </>
       ) : (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">🤖</div>
-          <h2 className="text-2xl font-bold text-text-primary mb-2">
+        <div className="text-center py-12 md:py-16 px-4">
+          <div className="text-4xl md:text-6xl mb-4">🤖</div>
+          <h2 className="text-xl md:text-2xl font-bold text-text-primary mb-2">
             {t.competition.noTradersActive}
           </h2>
-          <p className="text-text-secondary mb-6">
+          <p className="text-sm md:text-base text-text-secondary mb-6">
             {t.competition.startBackend}
           </p>
           <Link
             href="/config"
-            className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+            className="inline-block px-5 md:px-6 py-2.5 md:py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-semibold text-sm md:text-base"
           >
             {t.competition.config}
           </Link>

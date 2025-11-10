@@ -2,11 +2,15 @@
 
 import { useLocale } from '@/lib/i18n-context';
 
-export function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  showBackground?: boolean;
+}
+
+export function LanguageSwitcher({ showBackground = true }: LanguageSwitcherProps) {
   const { locale, setLocale } = useLocale();
 
   return (
-    <div className="flex items-center gap-1.5 bg-background-secondary rounded-lg p-1">
+    <div className={`flex items-center gap-1.5 rounded-lg p-1 ${showBackground ? 'bg-background-secondary' : ''}`}>
       <button
         onClick={() => setLocale('zh-CN')}
         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${

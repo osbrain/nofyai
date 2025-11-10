@@ -10,6 +10,7 @@ export function Header() {
   const t = useTranslations();
   const { isAuthenticated, logout } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -18,25 +19,25 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
-      <div className="w-full px-6">
-        <div className="flex items-center justify-between h-16">
+      <div className="w-full px-4 md:px-6">
+        <div className="flex items-center justify-between h-14 md:h-16">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center text-2xl shadow-lg">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center text-xl md:text-2xl shadow-lg">
               ⚡
             </div>
             <div>
-              <h1 className="text-xl font-bold text-primary">
+              <h1 className="text-base md:text-xl font-bold text-primary">
                 NofyAI
               </h1>
-              <p className="text-xs text-text-secondary">
+              <p className="text-[10px] md:text-xs text-text-secondary hidden sm:block">
                 AI Trading System
               </p>
             </div>
           </div>
 
-          {/* Navigation */}
-          <div className="flex items-center gap-4">
+          {/* Desktop Navigation */}
+          <div className="flex items-center gap-2 md:gap-4">
             <nav className="hidden md:flex items-center gap-6">
               <a href="/" className="text-sm font-medium text-text-secondary hover:text-primary transition-colors">
                 {t.nav.traders}
@@ -49,58 +50,101 @@ export function Header() {
               </a>
             </nav>
 
-            {/* Language Switcher */}
-            <LanguageSwitcher />
-
-            {/* GitHub Link */}
-            <a
-              href=""
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-text-secondary hover:text-primary hover:bg-background-secondary transition-all"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-              </svg>
-              <span>{t.nav.github}</span>
-            </a>
+            {/* Language Switcher - Desktop */}
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
 
             {/* Auth Status & Login/Logout */}
-            <div className="flex items-center gap-2 pl-2 border-l border-border">
+            <div className="flex items-center gap-1.5 md:gap-2 pl-2 border-l border-border">
               {isAuthenticated ? (
                 <>
                   {/* Logged In Status */}
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-success/10 rounded-lg">
-                    <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
-                    <span className="text-xs font-semibold text-success">{t.auth.admin}</span>
+                  <div className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 bg-success/10 rounded-lg">
+                    <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-success animate-pulse"></div>
+                    <span className="text-[10px] md:text-xs font-semibold text-success">{t.auth.admin}</span>
                   </div>
                   {/* Logout Button */}
                   <button
                     onClick={handleLogout}
-                    className="px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
+                    className="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium text-text-secondary hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
                   >
                     {t.nav.logout}
                   </button>
                 </>
               ) : (
                 <>
-                  {/* Not Logged In Status */}
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-text-tertiary/10 rounded-lg">
+                  {/* Not Logged In Status - Hide on mobile */}
+                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-text-tertiary/10 rounded-lg">
                     <div className="w-2 h-2 rounded-full bg-text-tertiary"></div>
                     <span className="text-xs font-semibold text-text-tertiary">{t.auth.guest}</span>
                   </div>
                   {/* Login Button */}
                   <button
                     onClick={() => setShowLoginModal(true)}
-                    className="px-3 py-1.5 text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                    className="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm font-medium text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
                   >
                     {t.nav.login}
                   </button>
                 </>
               )}
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden ml-2 p-2 text-text-secondary hover:text-primary transition-colors"
+              aria-label="Toggle menu"
+            >
+              {showMobileMenu ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {showMobileMenu && (
+          <div className="md:hidden py-3 border-t border-border">
+            <nav className="flex flex-col space-y-3">
+              <a
+                href="/"
+                className="text-sm font-medium text-text-secondary hover:text-primary transition-colors py-2"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                {t.nav.traders}
+              </a>
+              <a
+                href="/config"
+                className="text-sm font-medium text-text-secondary hover:text-primary transition-colors py-2"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                {t.nav.config}
+              </a>
+              <a
+                href="#"
+                className="text-sm font-medium text-text-secondary hover:text-primary transition-colors py-2"
+                onClick={() => setShowMobileMenu(false)}
+              >
+                {t.nav.documentation}
+              </a>
+
+              {/* Language Switcher - Mobile */}
+              <div className="pt-2 border-t border-border">
+                <div className="text-xs text-text-tertiary uppercase tracking-wider mb-2">
+                  Language / 语言
+                </div>
+                <LanguageSwitcher showBackground={false} />
+              </div>
+            </nav>
+          </div>
+        )}
       </div>
 
       {/* Login Modal */}
