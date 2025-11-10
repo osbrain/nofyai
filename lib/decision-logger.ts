@@ -25,6 +25,7 @@ export interface DecisionRecord {
     margin_used: number;
     margin_used_pct: number;
     position_count: number;
+    initial_balance: number; // Added for Sharpe Ratio calculation
   };
 
   // Positions (snapshot before execution)
@@ -262,8 +263,13 @@ export class DecisionLogger {
       const totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
       const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : (totalProfit > 0 ? 999 : 0);
 
-      // Calculate Sharpe Ratio
-      const sharpeRatio = this.calculateSharpeRatio(closedTrades);
+      // Get initial balance from first decision's account snapshot
+      const initialBalance = decisions.length > 0 && decisions[0].account_snapshot.initial_balance
+        ? decisions[0].account_snapshot.initial_balance
+        : 100; // Fallback to 100 if not available
+
+      // Calculate Sharpe Ratio (using account equity return method)
+      const sharpeRatio = this.calculateSharpeRatio(closedTrades, initialBalance);
 
       // Calculate max drawdown from equity curve
       const maxDrawdown = this.calculateMaxDrawdown(decisions);
@@ -305,7 +311,7 @@ export class DecisionLogger {
 
   /**
    * Extract closed trades from decision logs by matching open/close pairs
-   * Simple approach: scan all decisions, track when positions appear/disappear
+   * Fixed version: Process ALL close actions, not just unique symbol+side combinations
    */
   private extractClosedTrades(decisions: DecisionRecord[]): Array<{
     symbol: string;
@@ -337,64 +343,93 @@ export class DecisionLogger {
     if (decisions.length === 0) return trades;
 
     // Sort decisions oldest first
-    const sortedDecisions = [...decisions].reverse();
+    const sortedDecisions = [...decisions].sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
 
-    // Build a timeline of all close actions
-    const closeActions = new Map<string, { decision: DecisionRecord; action: any }>();
+    // ✅ FIX: Collect ALL close actions (not using Map, which would overwrite duplicates)
+    const allCloseActions: Array<{
+      decision: DecisionRecord;
+      action: any;
+      symbol: string;
+      side: string;
+    }> = [];
 
     for (const decision of sortedDecisions) {
       for (const action of decision.decisions) {
         if (action.action === 'close_long' || action.action === 'close_short') {
           const side = action.action === 'close_long' ? 'long' : 'short';
-          const key = `${action.symbol}_${side}`;
-          closeActions.set(key, { decision, action });
+          allCloseActions.push({
+            decision,
+            action,
+            symbol: action.symbol,
+            side: side,
+          });
         }
       }
     }
 
-    // For each close action, find the corresponding open by looking backwards
-    for (const [key, { decision: closeDecision, action: closeAction }] of closeActions.entries()) {
-      const [symbol, side] = key.split('_');
+    console.log(`[DecisionLogger] Found ${allCloseActions.length} close actions`);
 
+    // For each close action, find the corresponding open
+    for (const { decision: closeDecision, action: closeAction, symbol, side } of allCloseActions) {
       // Get position details from close decision's snapshot (before close)
       const closePosition = closeDecision.positions_snapshot.find(
         p => p.symbol === symbol && p.side === side
       );
 
-      if (!closePosition) continue;
+      if (!closePosition) {
+        console.warn(`[DecisionLogger] Cycle ${closeDecision.cycle_number}: ${symbol} ${side} - position not found in snapshot`);
+        continue;
+      }
 
-      // Find open time by scanning backwards to find when this position first appeared
+      // ✅ FIX: Find open time by looking backwards from close time
+      // Find when position FIRST appeared (wasn't in previous cycle but is in this one)
       let openTime: string | null = null;
       let openPrice = closePosition.entry_price;
 
-      for (const decision of sortedDecisions) {
-        if (new Date(decision.timestamp) >= new Date(closeDecision.timestamp)) break;
+      for (let i = 0; i < sortedDecisions.length; i++) {
+        const decision = sortedDecisions[i];
 
-        // Check if this position exists in snapshot
-        const pos = decision.positions_snapshot.find(
+        // Stop when we reach the close decision
+        if (decision.cycle_number >= closeDecision.cycle_number) break;
+
+        // Check if this position exists in current snapshot
+        const currentPos = decision.positions_snapshot.find(
           p => p.symbol === symbol && p.side === side
         );
 
-        if (pos) {
-          // Position exists, update open time to earliest found
+        // Check previous snapshot (if exists)
+        const prevPos = i > 0
+          ? sortedDecisions[i - 1].positions_snapshot.find(
+              p => p.symbol === symbol && p.side === side
+            )
+          : null;
+
+        // Position appeared for the first time (wasn't in previous, but is in current)
+        if (currentPos && !prevPos) {
           openTime = decision.timestamp;
-          openPrice = pos.entry_price;
-        } else {
-          // Position doesn't exist yet, so the next occurrence is the open
-          openTime = null;
+          openPrice = currentPos.entry_price;
+          break;
         }
       }
 
-      // If we never found the position in earlier cycles, look for open_long/open_short action
+      // Fallback: If still not found, look for open_long/open_short action
       if (!openTime) {
         for (const decision of sortedDecisions) {
-          if (new Date(decision.timestamp) >= new Date(closeDecision.timestamp)) break;
+          if (decision.cycle_number >= closeDecision.cycle_number) break;
 
           for (const action of decision.decisions) {
             const actionSide = action.action.includes('long') ? 'long' : action.action.includes('short') ? 'short' : null;
             if ((action.action === 'open_long' || action.action === 'open_short') &&
                 action.symbol === symbol && actionSide === side) {
               openTime = decision.timestamp;
+              // Try to get price from next cycle's snapshot
+              const nextDecision = sortedDecisions.find(d => d.cycle_number === decision.cycle_number + 1);
+              if (nextDecision) {
+                const pos = nextDecision.positions_snapshot.find(p => p.symbol === symbol && p.side === side);
+                if (pos) openPrice = pos.entry_price;
+              }
               break;
             }
           }
@@ -403,7 +438,7 @@ export class DecisionLogger {
       }
 
       if (!openTime) {
-        // Can't determine open time, skip this trade
+        console.warn(`[DecisionLogger] Cycle ${closeDecision.cycle_number}: ${symbol} ${side} - could not find open time`);
         continue;
       }
 
@@ -440,20 +475,32 @@ export class DecisionLogger {
       });
     }
 
+    console.log(`[DecisionLogger] Successfully extracted ${trades.length} / ${allCloseActions.length} trades`);
+
     return trades;
   }
 
   /**
    * Calculate Sharpe Ratio from closed trades
+   * Uses account equity return method (standard approach)
+   *
    * Sharpe Ratio = Mean Return / Std Dev of Returns
+   *
+   * @param trades - Array of closed trades with PnL data
+   * @param initialBalance - Initial account balance to calculate return percentage
+   * @returns Sharpe Ratio (annualized for trading frequency)
    */
-  private calculateSharpeRatio(trades: Array<{ pnl: number; pnl_pct: number }>): number {
+  private calculateSharpeRatio(
+    trades: Array<{ pnl: number; pnl_pct: number }>,
+    initialBalance: number
+  ): number {
     if (trades.length < 2) {
       return 0;
     }
 
-    // Use PnL percentage for returns
-    const returns = trades.map(t => t.pnl_pct);
+    // ✅ FIX: Use account equity return percentage (not price change percentage)
+    // This accounts for position size and reflects true account volatility
+    const returns = trades.map(t => (t.pnl / initialBalance) * 100);
 
     // Calculate mean return
     const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
@@ -465,6 +512,14 @@ export class DecisionLogger {
 
     // Sharpe Ratio (assuming risk-free rate = 0 for simplicity)
     const sharpeRatio = stdDev > 0 ? meanReturn / stdDev : 0;
+
+    console.log(`[DecisionLogger] Sharpe Ratio calculation:`, {
+      trades: trades.length,
+      initialBalance,
+      meanReturn: meanReturn.toFixed(6) + '%',
+      stdDev: stdDev.toFixed(6) + '%',
+      sharpeRatio: sharpeRatio.toFixed(4),
+    });
 
     return sharpeRatio;
   }

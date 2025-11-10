@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const traderId = searchParams.get('trader_id');
     const recentCountParam = searchParams.get('recent_count');
-    const recentCount = recentCountParam ? parseInt(recentCountParam, 10) : 100;
+    // Default to 1000 to analyze all historical trades (was 100, too small)
+    const recentCount = recentCountParam ? parseInt(recentCountParam, 10) : 1000;
 
     if (!traderId) {
       return NextResponse.json(

@@ -55,6 +55,24 @@ export function PerformanceMetrics({ performance }: PerformanceMetricsProps) {
         </div>
       </div>
 
+      {/* Warning Banner - System is Losing Money */}
+      {hasData && performance.profit_factor < 1.0 && (
+        <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
+          <div className="flex items-start gap-2">
+            <span className="text-sm">⚠️</span>
+            <div className="text-xs">
+              <div className="font-semibold text-warning mb-1">
+                System is Currently Losing Money
+              </div>
+              <div className="text-text-secondary">
+                Profit Factor {performance.profit_factor.toFixed(2)}x &lt; 1.0 means average losses exceed average profits.
+                Total P&L: {formatUSD((performance.avg_profit * performance.winning_trades) - (Math.abs(performance.avg_loss) * performance.losing_trades))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Key Metrics Grid - Compact 2 column */}
       <div className="grid grid-cols-2 gap-3">
         {/* Sharpe Ratio - 最重要的指标 */}

@@ -4,7 +4,8 @@ import { DecisionLogger } from '@/lib/decision-logger';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const traderId = searchParams.get('trader_id') || 'default_trader';
-  const recentCount = parseInt(searchParams.get('recent_count') || '100', 10);
+  // Default to 1000 to analyze all historical trades (was 100, too small)
+  const recentCount = parseInt(searchParams.get('recent_count') || '1000', 10);
 
   try {
     const logger = new DecisionLogger(traderId);
