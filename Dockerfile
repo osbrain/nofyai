@@ -24,6 +24,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Ensure public directory exists (Next.js optional directory)
+RUN mkdir -p public
+
 # Build Next.js application
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED 1

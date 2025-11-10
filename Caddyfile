@@ -17,7 +17,7 @@
 # ========================================
 
 # 将 nofyai.example.com 替换为你的域名
-nofyai.example.com {
+nofyai.top {
     # 反向代理到 Docker 容器
     reverse_proxy localhost:3000
 
