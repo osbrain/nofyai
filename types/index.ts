@@ -224,11 +224,18 @@ export interface TelegramConfig {
   notify_on_performance_warning: boolean;
 }
 
+// Admin Configuration
+export interface AdminConfig {
+  password: string; // Plain text or bcrypt hash
+  session_timeout_minutes: number; // Session timeout in minutes
+}
+
 // System Configuration
 export interface SystemConfig {
   traders: TraderConfig[];
   leverage: LeverageConfig;
   telegram?: TelegramConfig;
+  admin?: AdminConfig;
   use_default_coins: boolean;
   default_coins: string[];
   coin_pool_api_url: string;
