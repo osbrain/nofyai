@@ -27,24 +27,40 @@
 - 独立的资金管理和风险控制
 
 #### 📊 实时性能追踪
-- 实时净值曲线图表
+- 实时净值曲线图表（支持 1D/1W/1M/3M/All 时间范围）
 - 盈亏分析与夏普比率计算
 - 持仓监控与保证金使用率
+- 自动调整的 Y 轴域计算，优化图表可读性
 
 #### 🤖 AI 决策透明化
 - 完整的思维链（Chain of Thought）推理过程
 - 每笔交易决策的详细原因说明
 - 决策执行结果追踪
+- 管理员专属：查看系统提示词和输入提示词
 
 #### 📈 深度性能分析
 - 胜率与盈亏比统计
 - 最大回撤分析
 - 交易历史记录与样本分析
+- 智能样本量评级（<10 笔显示"样本较少"警告）
 
 #### 🎨 现代化 UI
 - 响应式设计，支持移动端
 - 借鉴 CoinMarketCap 的专业风格
 - 实时数据自动刷新（SWR）
+- 国际化支持（中文/英文）
+
+#### 🔐 安全与管理
+- 管理员认证系统（支持 bcrypt 密码哈希）
+- 会话管理与自动过期（可配置超时时间）
+- 敏感信息保护（API 密钥自动脱敏）
+- 配置热重载 API（无需重启容器）
+
+#### 📢 通知系统
+- Telegram Bot 集成
+- 交易通知（开仓/平仓）
+- 风险警报（达到止损/回撤阈值）
+- 系统状态通知
 
 ---
 
@@ -174,11 +190,14 @@ npm start
       "aster_private_key": "API钱包私钥（不含0x前缀）",
 
       // AI 配置
-      "deepseek_api_key": "sk-你的DeepSeek密钥",
+      "deepseek_key": "sk-你的DeepSeek密钥",
 
       // 交易参数
       "initial_balance": 1000.0,
-      "scan_interval_minutes": 3
+      "scan_interval_minutes": 3,
+
+      // 提示词模板（可选）
+      "prompt_template": "adaptive"  // adaptive/conservative/aggressive
     }
   ],
 
@@ -197,17 +216,56 @@ npm start
   // 风险管理
   "max_daily_loss": 10.0,
   "max_drawdown": 20.0,
-  "stop_trading_minutes": 60
+  "stop_trading_minutes": 60,
+
+  // 市场数据配置
+  "binance_region": "global",  // "global" 或 "us"
+
+  // 管理员配置
+  "admin": {
+    "password": "$2b$10$...",  // bcrypt 哈希或明文（开发环境）
+    "session_timeout_minutes": 60
+  },
+
+  // Telegram 通知（可选）
+  "telegram": {
+    "enabled": true,
+    "bot_token": "your-bot-token",
+    "chat_id": "your-chat-id"
+  }
+}
+```
+
+#### 生成管理员密码哈希
+
+**方式一：在线工具**
+访问 [bcrypt-generator.com](https://bcrypt-generator.com/)，输入密码生成哈希
+
+**方式二：使用 Node.js**
+```bash
+# 安装 bcrypt
+npm install bcrypt
+
+# 生成哈希
+node -e "const bcrypt=require('bcrypt'); bcrypt.hash('your-password', 10, (e,h)=>console.log(h))"
+```
+
+**方式三：开发环境使用明文**
+```json
+{
+  "admin": {
+    "password": "admin123"  // 仅供开发环境！
+  }
 }
 ```
 
 ### 支持的 AI 模型
 
-| AI 模型 | `ai_model` 值 | API 密钥字段 |
-|---------|--------------|-------------|
-| DeepSeek | `"deepseek"` | `deepseek_api_key` |
-| Qwen（通义千问） | `"qwen"` | `qwen_api_key` |
-| 自定义（OpenAI/本地） | `"custom"` | `custom_api_key`、`custom_api_url`、`custom_model_name` |
+| AI 模型 | `ai_model` 值 | API 密钥字段 | 备注 |
+|---------|--------------|-------------|------|
+| DeepSeek | `"deepseek"` | `deepseek_key` | 性价比高，推理能力强 |
+| Qwen（通义千问） | `"qwen"` | `qwen_key` | 阿里云模型，中文支持好 |
+| 自定义（OpenAI/本地） | `"custom"` | `custom_api_key`、`custom_api_url`、`custom_model_name` | 支持 OpenAI 兼容接口 |
 
 ### 支持的交易所
 
@@ -222,9 +280,96 @@ npm start
 编辑 `.env.local`：
 
 ```bash
-# 使用 Binance 数据源且被墙，配置代理
+# HTTP 代理配置（当 Binance API 被墙时使用）
 HTTP_PROXY=http://127.0.0.1:7890
 HTTPS_PROXY=http://127.0.0.1:7890
+
+# JWT 密钥（生产环境必须修改）
+JWT_SECRET=your-super-secret-key-change-this-in-production
+```
+
+**代理说明**：
+- 系统会自动检测代理配置
+- 未配置代理时，自动使用直连
+- 代理仅用于访问受限的 API（如 Binance）
+- 启动时会输出代理状态日志
+
+### Binance 区域配置
+
+**问题**：美国地区用户无法访问 `https://fapi.binance.com`
+
+**解决方案**：在 `config.json` 中配置区域
+
+```json
+{
+  "binance_region": "us"  // 使用 Binance US 端点
+}
+```
+
+| 配置值 | API 端点 | 适用地区 |
+|--------|----------|---------|
+| `"global"` | `https://fapi.binance.com` | 全球（默认） |
+| `"us"` | `https://api.binance.us` | 美国地区 |
+
+**注意**：
+- 配置后会自动切换到对应的 Binance API 端点
+- 系统启动时会输出当前使用的端点
+- 美国用户必须配置 `"binance_region": "us"`
+
+---
+
+## 🔐 管理员功能
+
+### 登录管理
+
+点击右上角"登录"按钮，输入 `config.json` 中配置的管理员密码。
+
+**管理员专属功能**：
+- ⚙️ 查看系统提示词（决策详情中）
+- 📊 查看完整配置（Config Viewer）
+- 🔧 访问配置热重载 API
+
+### 配置热重载（无需重启）
+
+**使用场景**：
+- 修改交易员参数（杠杆、扫描间隔等）
+- 添加/删除交易员
+- 修改风险管理参数
+
+**方式一：使用更新脚本（推荐）**
+```bash
+# 在生产服务器上
+./update-config.sh
+```
+
+**方式二：手动重启容器**
+```bash
+# 编辑 config.json
+nano config.json
+
+# 验证 JSON 格式
+cat config.json | jq .
+
+# 重启容器
+docker compose restart nofyai
+```
+
+**方式三：使用热重载 API**
+```bash
+# 编辑 config.json 后调用
+curl -X POST http://localhost:3000/api/config/reload
+```
+
+**注意**：热重载会停止所有运行中的交易员，需手动重新启动。
+
+### 权限修复
+
+如果遇到 `EACCES: permission denied` 错误：
+
+```bash
+# 使用权限修复脚本
+chmod +x fix-permissions.sh
+./fix-permissions.sh
 ```
 
 ---
@@ -380,34 +525,69 @@ GET /api/performance?trader_id={id}
 nofyai/
 ├── app/                      # Next.js App Router
 │   ├── api/                  # API 路由（直接调用 TraderManager）
+│   │   ├── auth/             # 认证相关 API
+│   │   ├── config/           # 配置管理 API
+│   │   ├── trade/            # 交易控制 API
+│   │   └── ...
 │   ├── trader/[id]/          # 交易员详情页（动态路由）
-│   ├── layout.tsx            # 根布局
+│   ├── config/               # 配置查看页面
+│   ├── layout.tsx            # 根布局（带认证）
 │   └── page.tsx              # 竞赛排行榜（首页）
 │
 ├── components/               # React 组件
 │   ├── ui/                   # 通用 UI 组件
+│   │   ├── card.tsx
+│   │   ├── badge.tsx
+│   │   ├── tooltip.tsx
+│   │   └── ...
+│   ├── auth/                 # 认证组件
+│   │   └── LoginModal.tsx
+│   ├── config/               # 配置组件
+│   │   └── ConfigViewer.tsx
 │   ├── competition/          # 竞赛相关组件
-│   └── trader/               # 交易员详情组件
+│   ├── trader/               # 交易员详情组件
+│   │   ├── DecisionDetailModal.tsx  # 决策详情弹窗
+│   │   ├── EquityChart.tsx          # 净值曲线图
+│   │   └── ...
+│   └── layout/               # 布局组件
+│       └── Header.tsx
 │
 ├── lib/                      # 核心业务逻辑
 │   ├── ai.ts                 # AI 模型集成
 │   ├── aster.ts              # Aster 交易所集成
-│   ├── config-loader.ts      # 配置加载器
+│   ├── auth.ts               # 认证工具（bcrypt、JWT）
+│   ├── auth-middleware.ts    # 认证中间件
+│   ├── config-loader.ts      # 配置加载器（支持热重载）
 │   ├── decision-logger.ts    # 决策日志系统
+│   ├── http-client.ts        # HTTP 客户端（代理支持）
 │   ├── market-data.ts        # 市场数据获取
+│   ├── telegram-notifier.ts  # Telegram 通知
 │   ├── trader-manager.ts     # 交易员管理器（单例）
 │   └── trading-engine.ts     # 交易引擎核心
+│
+├── hooks/                    # React Hooks
+│   └── useAuth.tsx           # 认证状态管理
 │
 ├── types/                    # TypeScript 类型定义
 │   └── index.ts
 │
 ├── scripts/                  # 工具脚本
-│   ├── test-aster-connection.ts
-│   └── derive-address.ts
+│   ├── test-aster-connection.ts    # 测试 Aster 连接
+│   ├── fix-permissions.sh          # 修复 Docker 卷权限
+│   ├── update-config.sh            # 配置更新助手
+│   └── deploy.sh                   # 一键部署脚本
+│
+├── decision_logs/            # 决策日志（自动生成）
+│   ├── aster_deepseek/
+│   └── ...
 │
 ├── config.json.example       # 配置文件示例
 ├── .env.local.example        # 环境变量示例
-└── CLAUDE.md                 # AI 开发指南
+├── docker-compose.yml        # Docker Compose 配置
+├── Dockerfile                # Docker 镜像配置
+├── Caddyfile                 # Caddy 反向代理配置
+├── CLAUDE.md                 # AI 开发指南
+└── README.md                 # 项目文档
 ```
 
 ### 常用命令
@@ -419,9 +599,26 @@ npm run build                 # 构建生产版本
 npm start                     # 启动生产服务器
 npm run lint                  # 运行 ESLint
 
+# Docker
+docker compose up -d          # 启动容器（后台运行）
+docker compose down           # 停止并移除容器
+docker compose restart        # 重启容器
+docker compose logs -f        # 查看实时日志
+docker compose build --no-cache  # 重新构建镜像
+
 # 工具脚本
 npx tsx scripts/test-aster-connection.ts    # 测试 Aster 连接
-npx tsx scripts/derive-address.ts           # 从私钥推导地址
+npx tsx scripts/test-binance-region.ts      # 测试 Binance 区域配置
+./fix-permissions.sh                        # 修复 Docker 卷权限
+./update-config.sh                          # 更新配置并重启
+./scripts/deploy.sh                         # 一键部署（CentOS/RHEL）
+
+# 生成密码哈希
+node -e "const bcrypt=require('bcrypt'); bcrypt.hash('your-password', 10, (e,h)=>console.log(h))"
+
+# 查看 Docker 卷数据
+docker volume ls                            # 列出所有卷
+docker volume inspect nofyai_nofyai-decision-logs  # 查看卷详情
 ```
 
 ### 添加新的 Trader
@@ -443,19 +640,31 @@ npx tsx scripts/derive-address.ts           # 从私钥推导地址
 - Tailwind CSS 3.4
 - Lucide React（图标）
 - Recharts（图表）
+- 响应式设计（移动端适配）
 
 **数据获取：**
 - SWR（实时数据 + 自动刷新）
 - Native Fetch API
+- undici（代理支持）
+
+**认证与安全：**
+- bcrypt（密码哈希）
+- jose（JWT 签名与验证）
+- 会话管理（Cookie-based）
 
 **AI 集成：**
 - DeepSeek API
-- Qwen API
+- Qwen API（通义千问）
 - 自定义 OpenAI 兼容 API
 
 **区块链/交易：**
 - ethers.js（Aster DEX 签名）
-- 交易所 REST APIs
+- 交易所 REST APIs（Binance、Hyperliquid）
+
+**部署：**
+- Docker & Docker Compose
+- Caddy（反向代理 + 自动 HTTPS）
+- CentOS/RHEL 支持
 
 ---
 
@@ -507,10 +716,32 @@ npx tsx scripts/derive-address.ts           # 从私钥推导地址
 
 #### 4. 市场数据获取失败
 
-**原因：** Binance API 被墙或代理配置错误
+**原因：** Binance API 被墙、区域限制或代理配置错误
 
-**解决：**
-- 或配置正确的 `HTTP_PROXY` 和 `HTTPS_PROXY`
+**症状：**
+- 美国用户访问 `fapi.binance.com` 被拒绝
+- 其他地区 Binance API 被防火墙拦截
+
+**解决方案：**
+
+**美国用户（区域限制）：**
+```json
+// config.json
+{
+  "binance_region": "us"  // 切换到 Binance US 端点
+}
+```
+
+**其他地区（被墙）：**
+```bash
+# .env.local
+HTTP_PROXY=http://127.0.0.1:7890
+HTTPS_PROXY=http://127.0.0.1:7890
+```
+
+**验证：**
+- 查看启动日志确认 Binance 端点和代理状态
+- 日志示例：`🌍 [Binance] Using US endpoint: https://api.binance.us`
 
 #### 5. Aster 交易失败
 
@@ -520,6 +751,184 @@ npx tsx scripts/derive-address.ts           # 从私钥推导地址
 - 确保 `aster_private_key` 不含 `0x` 前缀
 - 运行 `npx tsx scripts/test-aster-connection.ts` 测试连接
 - 检查账户 USDT 余额
+
+#### 6. Docker 容器权限错误（EACCES）
+
+**原因：** Docker 卷挂载权限与容器用户不匹配
+
+**症状：**
+```
+Error: EACCES: permission denied, mkdir 'decision_logs/aster_deepseek'
+```
+
+**解决方案：**
+
+**方式一：修复宿主机权限**
+```bash
+# 运行权限修复脚本
+chmod +x fix-permissions.sh
+./fix-permissions.sh
+
+# 重启容器
+docker compose restart
+```
+
+**方式二：使用 Docker 命名卷**
+```bash
+# 已在 docker-compose.yml 中配置
+# 无需手动干预，Docker 自动处理权限
+docker compose up -d
+```
+
+#### 7. 配置更新不生效
+
+**原因：** 配置在内存中缓存，未重新加载
+
+**解决：**
+```bash
+# 方式一：使用更新脚本
+./update-config.sh
+
+# 方式二：手动重启
+docker compose restart nofyai
+
+# 方式三：热重载 API（管理员）
+curl -X POST http://localhost:3000/api/config/reload
+```
+
+#### 8. Cloudflare DNS 配置错误
+
+**症状：** 域名无法解析，返回 `NXDOMAIN`
+
+**原因：** 错误使用 CNAME 记录指向 IP 地址
+
+**解决：**
+- **错误配置**：`类型: CNAME, 内容: 162.252.199.156` ❌
+- **正确配置**：`类型: A, 内容: 162.252.199.156` ✅
+- 在 Cloudflare 删除 CNAME 记录，添加 A 记录
+- 启用代理（橙色云朵）以获得 DDoS 防护
+
+#### 9. Telegram 通知发送失败
+
+**原因：** Bot Token 或 Chat ID 配置错误
+
+**解决：**
+```bash
+# 测试 Telegram 配置
+curl -X POST http://localhost:3000/api/telegram/test
+```
+
+检查 `config.json` 中的 `telegram` 配置是否正确。
+
+#### 10. 管理员登录失败
+
+**原因：** 密码错误或 JWT 密钥配置问题
+
+**解决：**
+- 检查 `config.json` 中的 `admin.password` 是否正确
+- 如果使用 bcrypt 哈希，确保哈希格式正确（以 `$2a$`、`$2b$` 或 `$2y$` 开头）
+- 开发环境可临时使用明文密码测试
+- 生产环境设置 `.env.local` 中的 `JWT_SECRET`
+
+---
+
+## 📦 Docker 部署最佳实践
+
+### 数据持久化
+
+系统支持两种数据持久化方案：
+
+#### 方案 1：Docker 命名卷（推荐）
+
+**优点**：
+- Docker 自动管理权限
+- 无需手动配置 UID/GID
+- 跨平台兼容性好
+
+**配置**（已默认启用）：
+```yaml
+volumes:
+  - nofyai-decision-logs:/app/decision_logs
+  - nofyai-data:/app/data
+```
+
+**数据访问**：
+```bash
+# 查看卷位置
+docker volume inspect nofyai_nofyai-decision-logs
+
+# 备份数据
+docker run --rm -v nofyai_nofyai-decision-logs:/data -v $(pwd):/backup alpine tar czf /backup/decision_logs.tar.gz /data
+```
+
+#### 方案 2：绑定挂载
+
+**优点**：
+- 数据直接存储在宿主机
+- 便于直接访问和备份
+
+**配置**：
+```yaml
+volumes:
+  - ./decision_logs:/app/decision_logs
+  - ./data:/app/data
+```
+
+**注意**：需要修复权限
+```bash
+sudo chown -R 1001:1001 decision_logs data
+```
+
+### 容器管理
+
+```bash
+# 查看容器状态
+docker compose ps
+
+# 查看资源使用
+docker stats nofyai
+
+# 进入容器调试
+docker compose exec nofyai sh
+
+# 查看容器日志（带时间戳）
+docker compose logs -f --timestamps nofyai
+
+# 限制日志大小（在 docker-compose.yml 中已配置）
+logging:
+  options:
+    max-size: "10m"
+    max-file: "3"
+```
+
+### 健康检查
+
+系统已配置健康检查，自动监控容器状态：
+
+```bash
+# 查看健康状态
+docker inspect --format='{{.State.Health.Status}}' nofyai
+
+# 查看健康检查日志
+docker inspect --format='{{range .State.Health.Log}}{{.Output}}{{end}}' nofyai
+```
+
+### 更新部署
+
+```bash
+# 1. 备份配置和数据（使用命名卷）
+docker run --rm -v nofyai_nofyai-decision-logs:/data -v $(pwd):/backup alpine tar czf /backup/backup.tar.gz /data
+
+# 2. 拉取最新代码
+git pull
+
+# 3. 重新构建并启动
+docker compose down
+docker compose up -d --build
+
+# 4. 验证
+docker compose logs -f nofyai
+```
 
 ---
 

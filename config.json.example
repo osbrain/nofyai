@@ -151,6 +151,16 @@
   "max_drawdown": 20.0,
   "stop_trading_minutes": 60,
 
+  // ========================================
+  // Market Data Configuration
+  // ========================================
+  // Binance API Region Selection
+  // - "global": Use https://fapi.binance.com (default, for most regions)
+  // - "us": Use https://api.binance.us (for US users)
+  //
+  // Note: US users cannot access fapi.binance.com due to regional restrictions
+  "binance_region": "global",
+
   // API Server Configuration
   "api_server_port": 8000
 }

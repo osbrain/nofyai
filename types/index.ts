@@ -244,6 +244,9 @@ export interface SystemConfig {
   max_daily_loss: number;
   max_drawdown: number;
   stop_trading_minutes: number;
+
+  // Market Data Configuration
+  binance_region?: 'global' | 'us'; // Binance API region (default: global)
 }
 
 // Masked Trader Config (for frontend display, hiding sensitive keys)

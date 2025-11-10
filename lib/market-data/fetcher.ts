@@ -5,9 +5,40 @@
 
 import { fetchWithProxy } from '../http-client';
 import { getOICache } from '../oi-cache';
+import { getSystemConfig } from '../config-loader';
 import type { KlineData } from './types';
 
-const BINANCE_BASE_URL = 'https://fapi.binance.com';
+// Binance API endpoints by region
+const BINANCE_API_ENDPOINTS = {
+  global: 'https://fapi.binance.com',
+  us: 'https://api.binance.us',
+} as const;
+
+/**
+ * Get Binance API base URL based on configured region
+ * @returns Base URL for Binance API
+ */
+function getBinanceBaseUrl(): string {
+  try {
+    const config = getSystemConfig();
+    const region = config.binance_region || 'global';
+
+    const baseUrl = BINANCE_API_ENDPOINTS[region];
+
+    // Only log once on first call
+    if (!getBinanceBaseUrl.logged) {
+      console.log(`🌍 [Binance] Using ${region.toUpperCase()} endpoint: ${baseUrl}`);
+      getBinanceBaseUrl.logged = true;
+    }
+
+    return baseUrl;
+  } catch (error) {
+    // Config not loaded yet, use default
+    return BINANCE_API_ENDPOINTS.global;
+  }
+}
+// Flag to track if we've logged the region
+getBinanceBaseUrl.logged = false;
 
 /**
  * Fetch kline (candlestick) data from Binance
@@ -23,6 +54,7 @@ export async function fetchKlines(
   limit: number,
   retries: number = 3
 ): Promise<KlineData[]> {
+  const BINANCE_BASE_URL = getBinanceBaseUrl();
   const url = `${BINANCE_BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -86,6 +118,7 @@ export async function fetchKlines(
  */
 export async function fetchOpenInterest(symbol: string): Promise<{ current: number; change_pct: number }> {
   try {
+    const BINANCE_BASE_URL = getBinanceBaseUrl();
     const url = `${BINANCE_BASE_URL}/fapi/v1/openInterest?symbol=${symbol}`;
     const response = await fetchWithProxy(url);
     if (!response.ok) return { current: 0, change_pct: 0 };
@@ -127,6 +160,7 @@ export async function fetchOpenInterest(symbol: string): Promise<{ current: numb
  * @returns Object with last price, volume, and buy/sell ratio
  */
 export async function fetchTicker(symbol: string): Promise<{ lastPrice: number; volume: number; buySellRatio: number }> {
+  const BINANCE_BASE_URL = getBinanceBaseUrl();
   const url = `${BINANCE_BASE_URL}/fapi/v1/ticker/24hr?symbol=${symbol}`;
   const response = await fetchWithProxy(url);
 
@@ -157,6 +191,7 @@ export async function fetchTicker(symbol: string): Promise<{ lastPrice: number; 
  */
 export async function fetchFundingRate(symbol: string): Promise<number> {
   try {
+    const BINANCE_BASE_URL = getBinanceBaseUrl();
     const url = `${BINANCE_BASE_URL}/fapi/v1/premiumIndex?symbol=${symbol}`;
     const response = await fetchWithProxy(url);
     if (!response.ok) return 0;
