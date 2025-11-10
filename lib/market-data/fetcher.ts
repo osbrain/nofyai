@@ -10,35 +10,58 @@ import type { KlineData } from './types';
 
 // Binance API endpoints by region
 const BINANCE_API_ENDPOINTS = {
-  global: 'https://fapi.binance.com',
-  us: 'https://api.binance.us',
+  global: {
+    baseUrl: 'https://fapi.binance.com',
+    type: 'futures' as const,
+    paths: {
+      klines: '/fapi/v1/klines',
+      ticker: '/fapi/v1/ticker/24hr',
+      openInterest: '/fapi/v1/openInterest',
+      fundingRate: '/fapi/v1/premiumIndex',
+    }
+  },
+  us: {
+    baseUrl: 'https://api.binance.us',
+    type: 'spot' as const,
+    paths: {
+      klines: '/api/v3/klines',
+      ticker: '/api/v3/ticker/24hr',
+      openInterest: null, // Not available for spot
+      fundingRate: null,  // Not available for spot
+    }
+  },
 } as const;
 
 /**
- * Get Binance API base URL based on configured region
- * @returns Base URL for Binance API
+ * Get Binance API configuration based on region
+ * @returns API configuration for the selected region
  */
-function getBinanceBaseUrl(): string {
+function getBinanceConfig() {
   try {
     const config = getSystemConfig();
     const region = config.binance_region || 'global';
 
-    const baseUrl = BINANCE_API_ENDPOINTS[region];
+    const apiConfig = BINANCE_API_ENDPOINTS[region as keyof typeof BINANCE_API_ENDPOINTS];
 
-    // Only log once on first call
-    if (!getBinanceBaseUrl.logged) {
-      console.log(`🌍 [Binance] Using ${region.toUpperCase()} endpoint: ${baseUrl}`);
-      getBinanceBaseUrl.logged = true;
+    if (!apiConfig) {
+      console.warn(`⚠️  [Binance] Invalid region: ${region}, falling back to global`);
+      return BINANCE_API_ENDPOINTS.global;
     }
 
-    return baseUrl;
+    // Only log once on first call
+    if (!getBinanceConfig.logged) {
+      console.log(`🌍 [Binance] Using ${region.toUpperCase()} endpoint (${apiConfig.type}): ${apiConfig.baseUrl}`);
+      getBinanceConfig.logged = true;
+    }
+
+    return apiConfig;
   } catch (error) {
     // Config not loaded yet, use default
     return BINANCE_API_ENDPOINTS.global;
   }
 }
 // Flag to track if we've logged the region
-getBinanceBaseUrl.logged = false;
+getBinanceConfig.logged = false;
 
 /**
  * Fetch kline (candlestick) data from Binance
@@ -54,8 +77,8 @@ export async function fetchKlines(
   limit: number,
   retries: number = 3
 ): Promise<KlineData[]> {
-  const BINANCE_BASE_URL = getBinanceBaseUrl();
-  const url = `${BINANCE_BASE_URL}/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const apiConfig = getBinanceConfig();
+  const url = `${apiConfig.baseUrl}${apiConfig.paths.klines}?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -115,11 +138,19 @@ export async function fetchKlines(
  * Uses OI cache to calculate change percentage
  * @param symbol - Trading symbol
  * @returns Object with current OI value and change percentage
+ * @note Only available for futures markets (global endpoint)
  */
 export async function fetchOpenInterest(symbol: string): Promise<{ current: number; change_pct: number }> {
   try {
-    const BINANCE_BASE_URL = getBinanceBaseUrl();
-    const url = `${BINANCE_BASE_URL}/fapi/v1/openInterest?symbol=${symbol}`;
+    const apiConfig = getBinanceConfig();
+
+    // Open Interest is not available for spot markets (US endpoint)
+    if (!apiConfig.paths.openInterest) {
+      console.log(`[OI] ${symbol}: Not available for ${apiConfig.type} market`);
+      return { current: 0, change_pct: 0 };
+    }
+
+    const url = `${apiConfig.baseUrl}${apiConfig.paths.openInterest}?symbol=${symbol}`;
     const response = await fetchWithProxy(url);
     if (!response.ok) return { current: 0, change_pct: 0 };
 
@@ -160,8 +191,8 @@ export async function fetchOpenInterest(symbol: string): Promise<{ current: numb
  * @returns Object with last price, volume, and buy/sell ratio
  */
 export async function fetchTicker(symbol: string): Promise<{ lastPrice: number; volume: number; buySellRatio: number }> {
-  const BINANCE_BASE_URL = getBinanceBaseUrl();
-  const url = `${BINANCE_BASE_URL}/fapi/v1/ticker/24hr?symbol=${symbol}`;
+  const apiConfig = getBinanceConfig();
+  const url = `${apiConfig.baseUrl}${apiConfig.paths.ticker}?symbol=${symbol}`;
   const response = await fetchWithProxy(url);
 
   if (!response.ok) {
@@ -188,11 +219,18 @@ export async function fetchTicker(symbol: string): Promise<{ lastPrice: number; 
  * Fetch funding rate from Binance
  * @param symbol - Trading symbol
  * @returns Funding rate (decimal, e.g., 0.0001 = 0.01%)
+ * @note Only available for futures markets (global endpoint)
  */
 export async function fetchFundingRate(symbol: string): Promise<number> {
   try {
-    const BINANCE_BASE_URL = getBinanceBaseUrl();
-    const url = `${BINANCE_BASE_URL}/fapi/v1/premiumIndex?symbol=${symbol}`;
+    const apiConfig = getBinanceConfig();
+
+    // Funding rate is not available for spot markets (US endpoint)
+    if (!apiConfig.paths.fundingRate) {
+      return 0;
+    }
+
+    const url = `${apiConfig.baseUrl}${apiConfig.paths.fundingRate}?symbol=${symbol}`;
     const response = await fetchWithProxy(url);
     if (!response.ok) return 0;
 

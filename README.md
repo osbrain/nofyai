@@ -306,14 +306,28 @@ JWT_SECRET=your-super-secret-key-change-this-in-production
 }
 ```
 
-| 配置值 | API 端点 | 适用地区 |
-|--------|----------|---------|
-| `"global"` | `https://fapi.binance.com` | 全球（默认） |
-| `"us"` | `https://api.binance.us` | 美国地区 |
+#### API 端点对比
 
-**注意**：
-- 配置后会自动切换到对应的 Binance API 端点
-- 系统启动时会输出当前使用的端点
+| 配置值 | 基础 URL | 市场类型 | K线路径 | Ticker 路径 |
+|--------|----------|---------|---------|-------------|
+| `"global"` | `https://fapi.binance.com` | 合约 (Futures) | `/fapi/v1/klines` | `/fapi/v1/ticker/24hr` |
+| `"us"` | `https://api.binance.us` | 现货 (Spot) | `/api/v3/klines` | `/api/v3/ticker/24hr` |
+
+#### 功能差异
+
+| 功能 | Global (Futures) | US (Spot) |
+|------|-----------------|-----------|
+| **K 线数据** | ✅ 支持 | ✅ 支持 |
+| **24h Ticker** | ✅ 支持 | ✅ 支持 |
+| **持仓量 (OI)** | ✅ 支持 | ❌ 不支持（现货无 OI） |
+| **资金费率** | ✅ 支持 | ❌ 不支持（现货无资金费率） |
+| **杠杆交易** | ✅ 支持 | ❌ 仅现货交易 |
+
+**重要提示**：
+- US 端点使用**现货市场 API**，不支持合约特有功能
+- 系统会自动处理功能差异（OI 和资金费率在 US 端点返回 0）
+- 配置后会自动切换到对应的 API 路径
+- 系统启动时会输出当前使用的端点和市场类型
 - 美国用户必须配置 `"binance_region": "us"`
 
 ---
