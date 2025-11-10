@@ -155,10 +155,24 @@
   // Market Data Configuration
   // ========================================
   // Binance API Region Selection
-  // - "global": Use https://fapi.binance.com (default, for most regions)
-  // - "us": Use https://api.binance.us (for US users)
   //
-  // Note: US users cannot access fapi.binance.com due to regional restrictions
+  // IMPORTANT: Different regions use different API endpoints and paths
+  //
+  // Option 1: "global" (default)
+  //   - URL: https://fapi.binance.com
+  //   - Type: Futures market (合约市场)
+  //   - K-lines path: /fapi/v1/klines
+  //   - Features: Open Interest, Funding Rate, Leverage Trading
+  //   - Use for: Most regions worldwide
+  //
+  // Option 2: "us"
+  //   - URL: https://api.binance.us
+  //   - Type: Spot market (现货市场)
+  //   - K-lines path: /api/v3/klines
+  //   - Features: Basic trading only (no OI, no funding rate)
+  //   - Use for: US users (fapi.binance.com is blocked in the US)
+  //
+  // Note: System automatically handles API path differences
   "binance_region": "global",
 
   // API Server Configuration
