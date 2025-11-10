@@ -60,12 +60,6 @@ export async function getFullDecision(
   // 2. 调用AI
   const aiResponse = await callAI(systemPrompt, userPrompt, aiConfig);
 
-  console.log('aiResponse', aiResponse);
-  console.log('--------------------------------');
-  console.log('prompt', systemPrompt);
-  console.log('user prompt', userPrompt);
-  console.log('--------------------------------');
-
   // 3. 解析响应
   const { cotTrace, decisions } = parseDecisionResponse(aiResponse);
 
