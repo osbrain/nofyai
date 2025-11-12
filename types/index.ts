@@ -44,6 +44,13 @@ export interface AIDecision {
   symbol: string;
   action: string;
   reasoning: string;
+  // Optional AI-provided parameters
+  position_size_usd?: number;
+  leverage?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  confidence?: number;
+  risk_usd?: number;
 }
 
 // Execution Result
