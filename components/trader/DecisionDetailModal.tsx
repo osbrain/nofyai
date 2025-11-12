@@ -222,10 +222,10 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                     </div>
                   )}
                   {activeTab === 'system' && decision.system_prompt && isAuthenticated && (
-                    <div className="p-4 prose prose-sm max-w-none prose-headings:text-purple-700 prose-p:text-text-secondary prose-strong:text-purple-600 prose-li:text-text-secondary prose-ul:list-disc prose-ol:list-decimal">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <div className="p-4">
+                      <pre className="text-xs font-mono text-text-secondary whitespace-pre-wrap">
                         {decision.system_prompt}
-                      </ReactMarkdown>
+                      </pre>
                     </div>
                   )}
                   {activeTab === 'input' && decision.input_prompt && (
@@ -318,24 +318,69 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                         </div>
                       )}
 
-                      {/* Position Details */}
+                      {/* AI Planned Parameters (for open actions) */}
+                      {(aiDecision.action === 'open_long' || aiDecision.action === 'open_short') && (
+                        <div className="mb-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                          {aiDecision.position_size_usd && (
+                            <div>
+                              <span className="text-text-tertiary">计划仓位: </span>
+                              <span className="font-mono text-text-primary">{formatUSD(aiDecision.position_size_usd)}</span>
+                            </div>
+                          )}
+                          {aiDecision.leverage && (
+                            <div>
+                              <span className="text-text-tertiary">计划杠杆: </span>
+                              <span className="font-semibold text-primary">{aiDecision.leverage}x</span>
+                            </div>
+                          )}
+                          {aiDecision.stop_loss && (
+                            <div>
+                              <span className="text-text-tertiary">止损: </span>
+                              <span className="font-mono text-danger">{formatUSD(aiDecision.stop_loss)}</span>
+                            </div>
+                          )}
+                          {aiDecision.take_profit && (
+                            <div>
+                              <span className="text-text-tertiary">止盈: </span>
+                              <span className="font-mono text-success">{formatUSD(aiDecision.take_profit)}</span>
+                            </div>
+                          )}
+                          {aiDecision.confidence && (
+                            <div>
+                              <span className="text-text-tertiary">信心度: </span>
+                              <span className="font-mono text-text-primary">{aiDecision.confidence}%</span>
+                            </div>
+                          )}
+                          {aiDecision.risk_usd && (
+                            <div>
+                              <span className="text-text-tertiary">风险: </span>
+                              <span className="font-mono text-text-primary">{formatUSD(aiDecision.risk_usd)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Actual Position Details (for existing positions) */}
                       {position && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                          <div>
-                            <span className="text-text-tertiary">{t.trader.quantity}: </span>
-                            <span className="font-mono text-text-primary">{position.quantity.toFixed(4)}</span>
-                          </div>
-                          <div>
-                            <span className="text-text-tertiary">{t.trader.entryPrice}: </span>
-                            <span className="font-mono text-text-primary">{formatUSD(position.entry_price)}</span>
-                          </div>
-                          <div>
-                            <span className="text-text-tertiary">{t.trader.currentPrice}: </span>
-                            <span className="font-mono text-text-primary">{formatUSD(position.mark_price)}</span>
-                          </div>
-                          <div>
-                            <span className="text-text-tertiary">{t.trader.leverage}: </span>
-                            <span className="font-semibold text-primary">{position.leverage}x</span>
+                        <div className="mb-3 p-3 bg-success/5 border border-success/20 rounded-lg">
+                          <div className="text-xs text-text-tertiary mb-2">实际持仓信息</div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                              <span className="text-text-tertiary">{t.trader.quantity}: </span>
+                              <span className="font-mono text-text-primary">{position.quantity.toFixed(4)}</span>
+                            </div>
+                            <div>
+                              <span className="text-text-tertiary">{t.trader.entryPrice}: </span>
+                              <span className="font-mono text-text-primary">{formatUSD(position.entry_price)}</span>
+                            </div>
+                            <div>
+                              <span className="text-text-tertiary">{t.trader.currentPrice}: </span>
+                              <span className="font-mono text-text-primary">{formatUSD(position.mark_price)}</span>
+                            </div>
+                            <div>
+                              <span className="text-text-tertiary">{t.trader.leverage}: </span>
+                              <span className="font-semibold text-primary">{position.leverage}x</span>
+                            </div>
                           </div>
                         </div>
                       )}

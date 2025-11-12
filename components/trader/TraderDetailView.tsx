@@ -458,6 +458,18 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                                   </div>
                                 </div>
                               </div>
+
+                              {/* PnL on the right */}
+                              {trade.position && (
+                                <div className="text-right">
+                                  <div className={`text-sm md:text-base font-bold ${trade.position.unrealized_pnl >= 0 ? 'text-success' : 'text-danger'}`}>
+                                    {trade.position.unrealized_pnl >= 0 ? '+' : ''}{formatUSD(trade.position.unrealized_pnl)}
+                                  </div>
+                                  <div className="text-xs text-text-tertiary">
+                                    {formatPercent(trade.position.unrealized_pnl_pct)}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             {/* Position Details (if available) */}
@@ -485,15 +497,6 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                                   <div className="text-[10px] text-text-tertiary">{t.trader.lev}</div>
                                   <div className="text-xs font-semibold text-primary">
                                     {trade.position.leverage}x
-                                  </div>
-                                </div>
-                                <div className="col-span-2">
-                                  <div className="text-[10px] text-text-tertiary">{t.trader.totalPnL}</div>
-                                  <div className={`text-sm font-bold ${trade.position.unrealized_pnl >= 0 ? 'text-success' : 'text-danger'}`}>
-                                    {trade.position.unrealized_pnl >= 0 ? '+' : ''}{formatUSD(trade.position.unrealized_pnl)}
-                                    <span className="text-xs ml-1">
-                                      ({formatPercent(trade.position.unrealized_pnl_pct)})
-                                    </span>
                                   </div>
                                 </div>
                               </div>

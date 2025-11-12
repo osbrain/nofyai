@@ -60,7 +60,7 @@ const OUTPUT_FORMAT_TEMPLATE = `
 **第一步: 思维链（纯文本）**
 简洁分析你的思考过程（100字以内）输出示例：当前BTC处于上涨趋势，EMA20在EMA50之上，MACD显示买入信号。我持有6个多头持仓，总账户价值$10,780，回报率+7.8%。所有持仓的止损和止盈计划都已设置且未触发。市场短期内看涨，保持现有持仓。
 
-**第二步: JSON 决策数组**
+**第二步: JSON 决策数组（此步输出时不要包含此标题）**
 \`\`\`json
 [
   {"symbol": "BTCUSDT", "action": "open_short", "leverage": \${btcEthLeverage}, "position_size_usd": \${accountEquity_sample}, "stop_loss": 97000, "take_profit": 91000, "confidence": 85, "risk_usd": 300, "reasoning": "下跌趋势+MACD死叉"},
