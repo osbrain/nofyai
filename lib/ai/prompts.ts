@@ -155,27 +155,8 @@ export function buildUserPrompt(ctx: TradingContext): string {
   const btcData = ctx.market_data_map['BTCUSDT'];
   if (btcData) {
     parts.push('## 🔴 BTC 市场（市场领导者）\n\n');
-    parts.push(`**价格**: $${btcData.current_price.toFixed(2)}\n`);
-
-    // 安全访问新字段（可能为 undefined）
-    const change15m = btcData.price_change_15m ?? 0;
-    const change1h = btcData.price_change_1h ?? 0;
-    const change4h = btcData.price_change_4h ?? 0;
-    parts.push(`**涨跌**: 15m ${change15m >= 0 ? '+' : ''}${change15m.toFixed(2)}% | 1h ${change1h >= 0 ? '+' : ''}${change1h.toFixed(2)}% | 4h ${change4h >= 0 ? '+' : ''}${change4h.toFixed(2)}%\n`);
-
-    const macd15m = btcData.macd_15m ?? btcData.current_macd ?? 0;
-    const macd1h = btcData.macd_1h ?? 0;
-    const macd4h = btcData.macd_4h ?? 0;
-    const macd1d = btcData.macd_1d ?? 0;
-    parts.push(`**MACD 多周期**: 15m ${macd15m.toFixed(4)} | 1h ${macd1h.toFixed(4)} | 4h ${macd4h.toFixed(4)} | 1d ${macd1d.toFixed(4)}\n`);
-
-    const rsi15m = btcData.rsi_15m ?? btcData.current_rsi7 ?? 50;
-    const rsi1h = btcData.rsi_1h ?? btcData.current_rsi14 ?? 50;
-    const rsi4h = btcData.rsi_4h ?? 50;
-    const rsi1d = btcData.rsi_1d ?? 50;
-    parts.push(`**RSI 多周期**: 15m ${rsi15m.toFixed(1)} | 1h ${rsi1h.toFixed(1)} | 4h ${rsi4h.toFixed(1)} | 1d ${rsi1d.toFixed(1)}\n`);
-
-    parts.push(`**资金费率**: ${(btcData.funding_rate || 0) >= 0 ? '+' : ''}${((btcData.funding_rate || 0) * 100).toFixed(4)}%\n\n`);
+    parts.push(formatMarketData(btcData));
+    parts.push('\n');
   }
 
   // 账户

@@ -108,6 +108,7 @@ export function formatMarketData(data: MarketData): string {
   // 时间序列数据（15分钟时间框架，最近10个数据点，用于趋势分析和形态识别）
   if (data.price_series_15m && data.price_series_15m.length > 0) {
     parts.push('\n**📈 时间序列 (15分钟, 最近10个点)**\n');
+    parts.push('⚠️ **时间顺序**: 从左到右 = 旧数据 → 新数据 (最右边是当前值)\n');
     parts.push(`**价格序列**: [${data.price_series_15m.map(p => p.toFixed(2)).join(', ')}]\n`);
 
     if (data.macd_series_15m && data.macd_series_15m.length > 0) {
