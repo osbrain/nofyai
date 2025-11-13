@@ -241,80 +241,80 @@ export function EquityChart({
 
       {/* Chart Container - Responsive height */}
       <div className="w-full h-[200px] md:h-[400px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={sortedData}
-          margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
-        >
-          {/* Gradient definitions for profit and loss areas */}
-          <defs>
-            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#16C784" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#16C784" stopOpacity={0.05}/>
-            </linearGradient>
-            <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#EA3943" stopOpacity={0.05}/>
-              <stop offset="95%" stopColor="#EA3943" stopOpacity={0.3}/>
-            </linearGradient>
-          </defs>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={sortedData}
+            margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+          >
+            {/* Gradient definitions for profit and loss areas */}
+            <defs>
+              <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#16C784" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#16C784" stopOpacity={0.05}/>
+              </linearGradient>
+              <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#EA3943" stopOpacity={0.05}/>
+                <stop offset="95%" stopColor="#EA3943" stopOpacity={0.3}/>
+              </linearGradient>
+            </defs>
 
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="#EFF2F5"
-            vertical={false}
-          />
-          <XAxis
-            dataKey="timestamp"
-            tickFormatter={formatTimestamp}
-            stroke="#9CA3AF"
-            style={{ fontSize: '12px' }}
-            tickLine={false}
-            axisLine={{ stroke: '#EFF2F5' }}
-          />
-          <YAxis
-            domain={yAxisDomain}
-            tickFormatter={(value) => formatUSD(value)}
-            stroke="#9CA3AF"
-            style={{ fontSize: '12px' }}
-            tickLine={false}
-            axisLine={{ stroke: '#EFF2F5' }}
-            width={80}
-          />
-          <Tooltip content={<CustomTooltip />} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#EFF2F5"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="timestamp"
+              tickFormatter={formatTimestamp}
+              stroke="#9CA3AF"
+              style={{ fontSize: '12px' }}
+              tickLine={false}
+              axisLine={{ stroke: '#EFF2F5' }}
+            />
+            <YAxis
+              domain={yAxisDomain}
+              tickFormatter={(value) => formatUSD(value)}
+              stroke="#9CA3AF"
+              style={{ fontSize: '12px' }}
+              tickLine={false}
+              axisLine={{ stroke: '#EFF2F5' }}
+              width={80}
+            />
+            <Tooltip content={<CustomTooltip />} />
 
-          {/* Reference line for initial balance */}
-          <ReferenceLine
-            y={initialBalance}
-            stroke="#9CA3AF"
-            strokeDasharray="3 3"
-            label={{
-              value: t.trader.initial,
-              position: 'right',
-              fill: '#9CA3AF',
-              fontSize: 11,
-            }}
-          />
+            {/* Reference line for initial balance */}
+            <ReferenceLine
+              y={initialBalance}
+              stroke="#9CA3AF"
+              strokeDasharray="3 3"
+              label={{
+                value: t.trader.initial,
+                position: 'right',
+                fill: '#9CA3AF',
+                fontSize: 11,
+              }}
+            />
 
-          {/* Area chart with smooth curve and gradient fill */}
-          <Area
-            type="basis"
-            dataKey="total_equity"
-            stroke={strokeColor}
-            strokeWidth={2.5}
-            fill={`url(#${fillGradientId})`}
-            fillOpacity={1}
-            baseValue={initialBalance}
-            dot={false}
-            activeDot={{
-              r: 6,
-              fill: strokeColor,
-              stroke: '#fff',
-              strokeWidth: 2,
-            }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+            {/* Area chart with smooth curve and gradient fill */}
+            <Area
+              type="basis"
+              dataKey="total_equity"
+              stroke={strokeColor}
+              strokeWidth={2.5}
+              fill={`url(#${fillGradientId})`}
+              fillOpacity={1}
+              baseValue={initialBalance}
+              dot={false}
+              activeDot={{
+                r: 6,
+                fill: strokeColor,
+                stroke: '#fff',
+                strokeWidth: 2,
+              }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

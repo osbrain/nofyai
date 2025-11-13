@@ -332,34 +332,34 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                     )}
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
                       {decisions.map((decision, i) => (
-                      <div
-                        key={i}
-                        className="p-3 bg-background-secondary rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer"
-                        onClick={() => setSelectedDecision(decision)}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <span className="font-semibold text-text-primary text-sm">{t.trader.cycle} #{decision.cycle_number}</span>
-                            <span className="text-xs text-text-secondary ml-2">
-                              {new Date(decision.timestamp).toLocaleString()}
-                            </span>
+                        <div
+                          key={i}
+                          className="p-3 bg-background-secondary rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer"
+                          onClick={() => setSelectedDecision(decision)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <span className="font-semibold text-text-primary text-sm">{t.trader.cycle} #{decision.cycle_number}</span>
+                              <span className="text-xs text-text-secondary ml-2">
+                                {new Date(decision.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            <Badge variant={decision.success ? 'success' : 'danger'}>
+                              {decision.success ? t.trader.success : t.trader.failed}
+                            </Badge>
                           </div>
-                          <Badge variant={decision.success ? 'success' : 'danger'}>
-                            {decision.success ? t.trader.success : t.trader.failed}
-                          </Badge>
+                          {decision.decisions && decision.decisions.length > 0 && (
+                            <div className="text-xs text-text-secondary mb-1">
+                              {decision.decisions.length} {t.trader.actions}
+                            </div>
+                          )}
+                          {decision.cot_trace && (
+                            <div className="text-xs text-text-tertiary truncate">
+                              💭 {decision.cot_trace.substring(0, 100)}...
+                            </div>
+                          )}
                         </div>
-                        {decision.decisions && decision.decisions.length > 0 && (
-                          <div className="text-xs text-text-secondary mb-1">
-                            {decision.decisions.length} {t.trader.actions}
-                          </div>
-                        )}
-                        {decision.cot_trace && (
-                          <div className="text-xs text-text-tertiary truncate">
-                            💭 {decision.cot_trace.substring(0, 100)}...
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      ))}
 
                     {/* Load More Button */}
                     {hasMore && (
