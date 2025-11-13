@@ -12,6 +12,22 @@ import { formatMarketData } from './formatters';
 // Template Constants
 // ========================================
 
+// 统一的账户信息说明模板（所有提示词共用）
+const ACCOUNT_INFO_TEMPLATE = `
+
+# 📊 账户信息
+
+你会在每次决策时收到当前账户信息：
+
+**账户**: 净值XX.XX | 余额YY.YY (占比%) | 盈亏±W.WW% | 保证金MM.M% | 持仓N个
+
+- 保证金使用率应控制在60%以内，超过80%时禁止开新仓
+- 余额充足（>30%）时才能考虑开新仓
+
+---
+
+`;
+
 // 统一的可用动作模板（所有提示词共用）
 const ACTIONS_TEMPLATE = `
 # 可用动作 (Actions)
@@ -119,8 +135,8 @@ export function buildSystemPrompt(
 
   promptContent = promptContent.trim();
 
-  // 构建完整提示词: 可用动作 + 策略内容 + 输出格式
-  let fullPrompt = promptContent+ ACTIONS_TEMPLATE + '\n' + OUTPUT_FORMAT_TEMPLATE;
+  // 构建完整提示词: 策略内容 + 账户信息说明 + 可用动作 + 输出格式
+  let fullPrompt = promptContent + ACCOUNT_INFO_TEMPLATE + ACTIONS_TEMPLATE + '\n' + OUTPUT_FORMAT_TEMPLATE;
 
   // 替换动态参数（如果提示词中包含占位符）
   // 例如：${btcEthLeverage}, ${altcoinLeverage}, ${accountEquity}

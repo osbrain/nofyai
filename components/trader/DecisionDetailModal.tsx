@@ -193,7 +193,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                     }`}
                   >
                     <span>⚙️</span>
-                    <span>系统提示词</span>
+                    <span>系统</span>
                   </button>
                 )}
                 {decision.input_prompt && (
@@ -206,7 +206,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                     }`}
                   >
                     <span>📥</span>
-                    <span>输入提示词</span>
+                    <span>用户</span>
                   </button>
                 )}
               </div>

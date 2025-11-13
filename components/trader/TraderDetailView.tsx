@@ -326,7 +326,7 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                     {pagination && (
                       <div className="mb-3 flex items-center justify-between text-[10px] md:text-xs text-text-secondary">
                         <span>
-                          {t.trader.showingDecisions || '显示'} {decisions.length} / {pagination.total_count} {t.trader.decisions || '条决策'}
+                          {t.trader.showingDecisions || '显示'} {decisions.length} / {pagination.total_count} {t.trader.decisionsCount || '条决策'}
                         </span>
                       </div>
                     )}
