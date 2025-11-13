@@ -186,7 +186,7 @@ export interface TraderConfig {
   id: string;
   name: string;
   enabled: boolean;
-  ai_model: 'qwen' | 'deepseek' | 'custom';
+  ai_model: 'qwen' | 'deepseek' | 'kimi' | 'custom';
   exchange: 'binance' | 'hyperliquid' | 'aster';
 
   // Exchange API Configurations
@@ -202,6 +202,8 @@ export interface TraderConfig {
   // AI API Configurations
   qwen_key?: string;
   deepseek_key?: string;
+  kimi_api_key?: string;
+  kimi_model_name?: string;
   custom_api_url?: string;
   custom_api_key?: string;
   custom_model_name?: string;
@@ -259,13 +261,14 @@ export interface SystemConfig {
 // Masked Trader Config (for frontend display, hiding sensitive keys)
 export interface MaskedTraderConfig extends Omit<TraderConfig,
   'binance_api_key' | 'binance_secret_key' | 'hyperliquid_private_key' |
-  'aster_private_key' | 'qwen_key' | 'deepseek_key' | 'custom_api_key'> {
+  'aster_private_key' | 'qwen_key' | 'deepseek_key' | 'kimi_api_key' | 'custom_api_key'> {
   binance_api_key_masked?: string;
   binance_secret_key_masked?: string;
   hyperliquid_private_key_masked?: string;
   aster_private_key_masked?: string;
   qwen_key_masked?: string;
   deepseek_key_masked?: string;
+  kimi_api_key_masked?: string;
   custom_api_key_masked?: string;
 }
 

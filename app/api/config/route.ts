@@ -58,6 +58,11 @@ export async function GET(request: NextRequest) {
           masked.deepseek_key_masked = `${trader.deepseek_key.substring(0, 4)}...${trader.deepseek_key.slice(-4)}`;
         } else if (trader.ai_model === 'qwen' && trader.qwen_key) {
           masked.qwen_key_masked = `${trader.qwen_key.substring(0, 4)}...${trader.qwen_key.slice(-4)}`;
+        } else if (trader.ai_model === 'kimi') {
+          masked.kimi_model_name = trader.kimi_model_name;
+          if (trader.kimi_api_key) {
+            masked.kimi_api_key_masked = `${trader.kimi_api_key.substring(0, 4)}...${trader.kimi_api_key.slice(-4)}`;
+          }
         } else if (trader.ai_model === 'custom') {
           masked.custom_api_url = trader.custom_api_url;
           masked.custom_model_name = trader.custom_model_name;

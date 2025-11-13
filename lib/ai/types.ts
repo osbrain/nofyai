@@ -145,7 +145,7 @@ export interface TradingContext {
  * AI API configuration
  */
 export interface AIConfig {
-  model: 'deepseek' | 'qwen' | 'custom';
+  model: 'deepseek' | 'qwen' | 'kimi' | 'custom';
   apiKey: string;
   baseURL?: string;
   modelName?: string;

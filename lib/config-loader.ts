@@ -132,6 +132,15 @@ export class ConfigLoader {
         aiConfig.baseURL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
         break;
 
+      case 'kimi':
+        if (!traderConfig.kimi_api_key) {
+          throw new Error(`Trader ${traderConfig.id}: Missing kimi_api_key`);
+        }
+        aiConfig.apiKey = traderConfig.kimi_api_key;
+        aiConfig.baseURL = 'https://api.moonshot.cn';
+        aiConfig.modelName = traderConfig.kimi_model_name || 'kimi-k2-turbo-preview';
+        break;
+
       case 'custom':
         if (!traderConfig.custom_api_key || !traderConfig.custom_api_url) {
           throw new Error(`Trader ${traderConfig.id}: Missing custom API configuration`);

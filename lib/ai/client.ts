@@ -4,6 +4,26 @@
 
 import type { AIConfig } from './types';
 
+// AI model configuration mappings
+const AI_MODEL_CONFIG = {
+  deepseek: {
+    baseURL: 'https://api.deepseek.com',
+    defaultModel: 'deepseek-chat',
+  },
+  qwen: {
+    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    defaultModel: 'qwen-plus',
+  },
+  kimi: {
+    baseURL: 'https://api.moonshot.cn',
+    defaultModel: 'kimi-k2-turbo-preview',
+  },
+  custom: {
+    baseURL: undefined, // Provided by config
+    defaultModel: 'gpt-4',
+  },
+} as const;
+
 /**
  * Call AI model API
  * @param systemPrompt - System prompt (trading strategy and rules)
@@ -16,17 +36,14 @@ export async function callAI(
   userPrompt: string,
   config: AIConfig
 ): Promise<string> {
-  const baseURL =
-    config.baseURL ||
-    (config.model === 'deepseek'
-      ? 'https://api.deepseek.com'
-      : config.model === 'qwen'
-        ? 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-        : config.baseURL);
+  const modelConfig = AI_MODEL_CONFIG[config.model];
+  const baseURL = config.baseURL || modelConfig.baseURL;
 
   if (!baseURL) {
     throw new Error('AI base URL is required for custom model');
   }
+
+  const modelName = config.modelName || modelConfig.defaultModel;
 
   const response = await fetch(`${baseURL}/v1/chat/completions`, {
     method: 'POST',
@@ -35,7 +52,7 @@ export async function callAI(
       Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({
-      model: config.model === 'deepseek' ? 'deepseek-chat' : 'qwen-plus',
+      model: modelName,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
