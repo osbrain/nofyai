@@ -156,6 +156,12 @@ export const zhCN = {
     actions: '操作',
     noDecisionsYet: '暂无决策',
     decisionsWillAppear: 'AI 决策将在此处显示',
+    showingLatest100Decisions: '仅显示最近100条决策记录以优化性能',
+    showingDecisions: '显示',
+    decisions: '条决策',
+    loadMore: '加载更多',
+    loading: '加载中...',
+    allDecisionsLoaded: '已加载全部决策',
 
     // Trades
     noTradesYet: '暂无交易',

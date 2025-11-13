@@ -11,6 +11,17 @@ import type {
   MaskedSystemConfig,
 } from '@/types';
 
+export interface PaginatedResponse<T> {
+  decisions: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total_count: number;
+    total_pages: number;
+    has_more: boolean;
+  };
+}
+
 const API_BASE = '/api';
 
 class APIClient {
@@ -62,9 +73,11 @@ class APIClient {
     return this.fetch<Position[]>(url);
   }
 
-  async getDecisions(traderId?: string): Promise<DecisionRecord[]> {
-    const url = traderId ? `/decisions?trader_id=${traderId}` : '/decisions';
-    return this.fetch<DecisionRecord[]>(url);
+  async getDecisions(traderId?: string, page: number = 1, limit: number = 20): Promise<PaginatedResponse<DecisionRecord>> {
+    const url = traderId
+      ? `/decisions?trader_id=${traderId}&page=${page}&limit=${limit}`
+      : `/decisions?page=${page}&limit=${limit}`;
+    return this.fetch<PaginatedResponse<DecisionRecord>>(url);
   }
 
   async getLatestDecisions(traderId?: string): Promise<DecisionRecord[]> {

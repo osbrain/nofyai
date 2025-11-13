@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -156,28 +156,21 @@ export function EquityChart({
     }
   };
 
-  // Custom tooltip
+  // Custom tooltip - simplified without PnL data
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload as EquityPoint;
-      const isProfitable = data.total_pnl >= 0;
 
       return (
-        <div className="bg-white border border-border rounded-lg shadow-lg p-4">
+        <div className="bg-white border border-border rounded-lg shadow-lg p-3">
           <div className="text-xs text-text-secondary mb-2">
             {new Date(data.timestamp).toLocaleString()}
           </div>
           <div className="space-y-2">
             <div>
               <div className="text-xs text-text-tertiary">{t.trader.totalEquity}</div>
-              <div className="text-lg font-bold text-text-primary">
+              <div className="text-base font-bold text-text-primary">
                 {formatUSD(data.total_equity)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-text-tertiary">{t.competition.profitAndLoss}</div>
-              <div className={`text-sm font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
-                {isProfitable ? '+' : ''}{formatUSD(data.total_pnl)} ({formatPercent(data.total_pnl_pct)})
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
@@ -220,7 +213,8 @@ export function EquityChart({
   // Determine if overall profitable
   const latestPoint = sortedData[sortedData.length - 1];
   const isProfitable = latestPoint.total_pnl >= 0;
-  const lineColor = isProfitable ? '#16C784' : '#EA3943';
+  const strokeColor = isProfitable ? '#16C784' : '#EA3943';
+  const fillGradientId = isProfitable ? 'colorProfit' : 'colorLoss';
 
   return (
     <div className="w-full space-y-2 md:space-y-3">
@@ -248,10 +242,22 @@ export function EquityChart({
       {/* Chart Container - Responsive height */}
       <div className="w-full h-[200px] md:h-[400px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
+        <AreaChart
           data={sortedData}
           margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
         >
+          {/* Gradient definitions for profit and loss areas */}
+          <defs>
+            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#16C784" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#16C784" stopOpacity={0.05}/>
+            </linearGradient>
+            <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#EA3943" stopOpacity={0.05}/>
+              <stop offset="95%" stopColor="#EA3943" stopOpacity={0.3}/>
+            </linearGradient>
+          </defs>
+
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="#EFF2F5"
@@ -289,21 +295,24 @@ export function EquityChart({
             }}
           />
 
-          {/* Equity line */}
-          <Line
-            type="monotone"
+          {/* Area chart with smooth curve and gradient fill */}
+          <Area
+            type="basis"
             dataKey="total_equity"
-            stroke={lineColor}
+            stroke={strokeColor}
             strokeWidth={2.5}
+            fill={`url(#${fillGradientId})`}
+            fillOpacity={1}
+            baseValue={initialBalance}
             dot={false}
             activeDot={{
               r: 6,
-              fill: lineColor,
+              fill: strokeColor,
               stroke: '#fff',
               strokeWidth: 2,
             }}
           />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
     </div>

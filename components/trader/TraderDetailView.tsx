@@ -5,7 +5,7 @@ import {
   useStatus,
   useAccount,
   usePositions,
-  useDecisions,
+  useDecisionsInfinite,
   useEquityHistory,
   usePerformance,
 } from '@/hooks/useTrading';
@@ -38,7 +38,14 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
   const { data: status } = useStatus(traderId);
   const { data: account } = useAccount(traderId);
   const { data: positions } = usePositions(traderId);
-  const { data: decisions } = useDecisions(traderId);
+  const {
+    decisions,
+    isLoading: decisionsLoading,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+    pagination,
+  } = useDecisionsInfinite(traderId, 20);
   const { data: equityHistory } = useEquityHistory(traderId);
   const { data: performance } = usePerformance(traderId);
 
@@ -314,8 +321,17 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
               {/* Decisions Tab */}
               <TabsContent value="decisions" className="p-2 md:p-4">
                 {decisions && decisions.length > 0 ? (
-                  <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                    {decisions.map((decision, i) => (
+                  <>
+                    {/* Pagination info */}
+                    {pagination && (
+                      <div className="mb-3 flex items-center justify-between text-[10px] md:text-xs text-text-secondary">
+                        <span>
+                          {t.trader.showingDecisions || '显示'} {decisions.length} / {pagination.total_count} {t.trader.decisions || '条决策'}
+                        </span>
+                      </div>
+                    )}
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      {decisions.map((decision, i) => (
                       <div
                         key={i}
                         className="p-3 bg-background-secondary rounded-lg border border-border hover:border-primary/50 transition-all cursor-pointer"
@@ -344,6 +360,39 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                         )}
                       </div>
                     ))}
+
+                    {/* Load More Button */}
+                    {hasMore && (
+                      <div className="mt-3 flex justify-center">
+                        <button
+                          onClick={loadMore}
+                          disabled={isLoadingMore}
+                          className="px-4 md:px-6 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors font-semibold text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoadingMore ? (
+                            <span className="flex items-center gap-2">
+                              <span className="inline-block w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                              {t.trader.loading || '加载中...'}
+                            </span>
+                          ) : (
+                            <span>{t.trader.loadMore || '加载更多'}</span>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* End of list indicator */}
+                    {!hasMore && decisions.length > 20 && (
+                      <div className="mt-3 text-center text-xs text-text-tertiary">
+                        {t.trader.allDecisionsLoaded || '已加载全部决策'}
+                      </div>
+                    )}
+                  </div>
+                </>
+                ) : decisionsLoading ? (
+                  <div className="text-center py-8 md:py-12 text-text-tertiary">
+                    <div className="text-3xl md:text-4xl mb-2">⏳</div>
+                    <div className="text-xs md:text-sm">{t.trader.loading || '加载中...'}</div>
                   </div>
                 ) : (
                   <div className="text-center py-8 md:py-12 text-text-tertiary">

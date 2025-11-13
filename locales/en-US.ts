@@ -158,6 +158,12 @@ export const enUS: Locale = {
     actions: 'Actions',
     noDecisionsYet: 'No Decisions Yet',
     decisionsWillAppear: 'AI decisions will appear here',
+    showingLatest100Decisions: 'Showing latest 100 decisions only for performance optimization',
+    showingDecisions: 'Showing',
+    decisions: 'decisions',
+    loadMore: 'Load More',
+    loading: 'Loading...',
+    allDecisionsLoaded: 'All decisions loaded',
 
     // Trades
     noTradesYet: 'No Trades Yet',

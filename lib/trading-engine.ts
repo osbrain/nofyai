@@ -662,9 +662,9 @@ export class TradingEngine {
     const balance = await this.trader.getBalance();
     const positions = await this.trader.getPositions();
 
-    const totalPnl = balance.totalUnrealizedProfit;
-    const totalPnlPct =
-      ((balance.totalWalletBalance - this.config.initialBalance) / this.config.initialBalance) * 100;
+    // Calculate total PnL: current equity - initial balance (includes both realized and unrealized)
+    const totalPnl = balance.totalWalletBalance - this.config.initialBalance;
+    const totalPnlPct = (totalPnl / this.config.initialBalance) * 100;
 
     const marginUsed = positions.reduce(
       (sum, pos) => sum + (pos.markPrice * pos.positionAmt) / pos.leverage,

@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import useSWR from 'swr';
-import { api } from '@/lib/api';
+import { api, PaginatedResponse } from '@/lib/api';
 import type {
   CompetitionData,
   TraderInfo,
@@ -87,12 +88,84 @@ export function usePositions(traderId?: string) {
 }
 
 /**
- * Fetch all decision records for a specific trader
+ * Fetch decision records with pagination support
+ */
+export function useDecisionsPaginated(traderId?: string, page: number = 1, limit: number = 20) {
+  return useSWR<PaginatedResponse<DecisionRecord>>(
+    traderId ? `decisions-${traderId}-${page}-${limit}` : null,
+    () => api.getDecisions(traderId, page, limit),
+    {
+      refreshInterval: 30000, // Less frequent
+      revalidateOnFocus: false,
+    }
+  );
+}
+
+/**
+ * Hook for infinite scroll / load more pattern
+ */
+export function useDecisionsInfinite(traderId?: string, pageSize: number = 20) {
+  const [allDecisions, setAllDecisions] = useState<DecisionRecord[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const { data, error, isLoading } = useSWR<PaginatedResponse<DecisionRecord>>(
+    traderId ? `decisions-infinite-${traderId}-${page}-${pageSize}` : null,
+    () => api.getDecisions(traderId, page, pageSize),
+    {
+      refreshInterval: 30000,
+      revalidateOnFocus: false,
+      onSuccess: (data) => {
+        if (page === 1) {
+          // First page - replace all
+          setAllDecisions(data.decisions);
+        } else {
+          // Subsequent pages - append
+          setAllDecisions(prev => [...prev, ...data.decisions]);
+        }
+        setHasMore(data.pagination.has_more);
+        setIsLoadingMore(false);
+      },
+    }
+  );
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore && !isLoading) {
+      setIsLoadingMore(true);
+      setPage(prev => prev + 1);
+    }
+  }, [hasMore, isLoadingMore, isLoading]);
+
+  const reset = useCallback(() => {
+    setPage(1);
+    setAllDecisions([]);
+    setHasMore(true);
+  }, []);
+
+  return {
+    decisions: allDecisions,
+    isLoading,
+    isLoadingMore,
+    error,
+    hasMore,
+    loadMore,
+    reset,
+    pagination: data?.pagination,
+  };
+}
+
+/**
+ * Fetch all decision records for a specific trader (legacy - for backward compatibility)
+ * @deprecated Use useDecisionsPaginated or useDecisionsInfinite instead
  */
 export function useDecisions(traderId?: string) {
   return useSWR<DecisionRecord[]>(
-    traderId ? `decisions-${traderId}` : null,
-    () => api.getDecisions(traderId),
+    traderId ? `decisions-legacy-${traderId}` : null,
+    async () => {
+      const response = await api.getDecisions(traderId, 1, 100);
+      return response.decisions;
+    },
     {
       refreshInterval: 30000, // Less frequent
       revalidateOnFocus: false,
