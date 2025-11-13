@@ -120,7 +120,9 @@ export function formatMarketData(data: MarketData): string {
     }
 
     if (data.volume_series_15m && data.volume_series_15m.length > 0) {
-      parts.push(`**成交量序列**: [${data.volume_series_15m.map(v => v.toFixed(2)).join(', ')}]M\n`);
+      // Convert back to raw values and use scientific notation to preserve precision
+      // Use 4 significant digits for better precision on both small and large values
+      parts.push(`**成交量序列**: [${data.volume_series_15m.map(v => (v * 1e6).toExponential(4)).join(', ')}]\n`);
     }
 
     if (data.ema20_series_15m && data.ema20_series_15m.length > 0) {
