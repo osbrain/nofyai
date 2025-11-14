@@ -14,6 +14,8 @@ import type {
   EquityPoint,
   PerformanceAnalysis,
   MaskedSystemConfig,
+  ClosedPositionsResponse,
+  ClosedPosition,
 } from '@/types';
 
 // SWR configuration
@@ -242,4 +244,59 @@ export function useConfig() {
       dedupingInterval: 30000,
     }
   );
+}
+
+/**
+ * Fetch closed trades (平仓记录) with pagination support
+ * Uses the new /api/trades endpoint for fast access to closed positions
+ */
+export function useClosedTrades(traderId?: string, pageSize: number = 20) {
+  const [allTrades, setAllTrades] = useState<ClosedPosition[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const { data, error, isLoading } = useSWR<ClosedPositionsResponse>(
+    traderId ? `closed-trades-${traderId}-${page}-${pageSize}` : null,
+    () => api.getClosedTrades(traderId!, page, pageSize),
+    {
+      refreshInterval: 30000, // Refresh every 30s
+      revalidateOnFocus: false,
+      onSuccess: (data) => {
+        if (page === 1) {
+          // First page - replace all
+          setAllTrades(data.data);
+        } else {
+          // Subsequent pages - append
+          setAllTrades(prev => [...prev, ...data.data]);
+        }
+        setHasMore(data.pagination.has_next);
+        setIsLoadingMore(false);
+      },
+    }
+  );
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore && !isLoading) {
+      setIsLoadingMore(true);
+      setPage(prev => prev + 1);
+    }
+  }, [hasMore, isLoadingMore, isLoading]);
+
+  const reset = useCallback(() => {
+    setPage(1);
+    setAllTrades([]);
+    setHasMore(true);
+  }, []);
+
+  return {
+    trades: allTrades,
+    isLoading,
+    isLoadingMore,
+    error,
+    hasMore,
+    loadMore,
+    reset,
+    pagination: data?.pagination,
+  };
 }

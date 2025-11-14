@@ -339,3 +339,43 @@ export interface MarketPrice {
   change_24h: number;
   change_24h_pct: number;
 }
+
+// Closed Position (stored in closed_positions.json for fast access)
+export interface ClosedPosition {
+  id: number; // Auto-increment ID
+  trader_id: string;
+  cycle_number: number;
+  timestamp: string; // Close timestamp
+  symbol: string;
+  side: 'long' | 'short';
+  action: 'close_long' | 'close_short';
+
+  // Trade Details
+  open_time: string;
+  close_time: string;
+  entry_price: number;
+  exit_price: number; // Mark price at close
+  quantity: number;
+  leverage: number;
+
+  // PnL
+  pnl: number; // Realized PnL (USDT)
+  pnl_pct: number; // PnL percentage (price change)
+  holding_time_minutes: number;
+
+  // Optional: AI reasoning for close
+  reasoning?: string;
+}
+
+// Paginated response for closed positions
+export interface ClosedPositionsResponse {
+  data: ClosedPosition[];
+  pagination: {
+    page: number;
+    limit: number;
+    total_count: number;
+    total_pages: number;
+    has_next: boolean;
+    has_prev: boolean;
+  };
+}

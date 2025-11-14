@@ -140,6 +140,10 @@ export class TradingEngine {
     return { ...this.session };
   }
 
+  getDecisionLogger(): DecisionLogger {
+    return this.logger;
+  }
+
   // ========================================
   // Core Trading Cycle
   // ========================================

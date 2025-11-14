@@ -168,6 +168,7 @@ export const enUS: Locale = {
     // Trades
     noTradesYet: 'No Trades Yet',
     tradesWillAppear: 'Trading actions will appear here',
+    allTradesLoaded: 'All trades loaded',
 
     // Chart
     equityPerformance: 'Equity Performance',
@@ -182,6 +183,7 @@ export const enUS: Locale = {
     side: 'Side',
     entryPrice: 'Entry',
     currentPrice: 'Current',
+    exitPrice: 'Exit',
     quantity: 'Qty',
     unrealizedPnL: 'Unrealized P&L',
     action: 'Action',
@@ -224,6 +226,8 @@ export const enUS: Locale = {
     coins: 'coins',
     inputPrompt: 'Input Prompt (Market Data Sent to AI)',
     cotAnalysis: 'AI Analysis',
+    systemPrompt: 'System',
+    userInput: 'User',
     decisionJson: 'Decision JSON',
     executionLog: 'Execution Log',
     decisionActions: 'AI Decision Actions',

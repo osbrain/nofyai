@@ -166,6 +166,7 @@ export const zhCN = {
     // Trades
     noTradesYet: '暂无交易',
     tradesWillAppear: '交易操作将在此处显示',
+    allTradesLoaded: '已加载全部交易',
 
     // Chart
     equityPerformance: '权益表现',
@@ -180,6 +181,7 @@ export const zhCN = {
     side: '方向',
     entryPrice: '入场价',
     currentPrice: '当前价',
+    exitPrice: '平仓价',
     quantity: '数量',
     unrealizedPnL: '未实现盈亏',
     action: '操作',
@@ -222,6 +224,8 @@ export const zhCN = {
     coins: '个',
     inputPrompt: '输入 Prompt（发送给AI的市场数据）',
     cotAnalysis: 'AI分析',
+    systemPrompt: '系统',
+    userInput: '用户',
     decisionJson: '决策 JSON',
     executionLog: '执行日志',
     decisionActions: 'AI 决策动作',

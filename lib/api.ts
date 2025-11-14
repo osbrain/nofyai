@@ -9,6 +9,7 @@ import type {
   EquityPoint,
   PerformanceAnalysis,
   MaskedSystemConfig,
+  ClosedPositionsResponse,
 } from '@/types';
 
 export interface PaginatedResponse<T> {
@@ -102,6 +103,11 @@ class APIClient {
   async getPerformance(traderId?: string): Promise<PerformanceAnalysis> {
     const url = traderId ? `/performance?trader_id=${traderId}` : '/performance';
     return this.fetch<PerformanceAnalysis>(url);
+  }
+
+  async getClosedTrades(traderId: string, page: number = 1, limit: number = 20): Promise<ClosedPositionsResponse> {
+    const url = `/trades?trader_id=${traderId}&page=${page}&limit=${limit}`;
+    return this.fetch<ClosedPositionsResponse>(url);
   }
 }
 

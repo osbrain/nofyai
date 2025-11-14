@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { FullDecision, Decision, TradingContext } from './ai';
+import { ClosedPosition } from '@/types';
 
 // ========================================
 // Types
@@ -69,10 +70,12 @@ export class DecisionLogger {
   private traderId: string;
   private logDir: string;
   private cycleNumber: number = 0;
+  private closedPositionsFile: string; // Path to closed_positions.json
 
   constructor(traderId: string, baseDir: string = './decision_logs') {
     this.traderId = traderId;
     this.logDir = path.join(baseDir, traderId);
+    this.closedPositionsFile = path.join(this.logDir, 'closed_positions.json');
     this.ensureLogDirectory();
   }
 
@@ -136,10 +139,105 @@ export class DecisionLogger {
       await fs.writeFile(filepath, JSON.stringify(record, null, 2), 'utf-8');
 
       console.log(`✅ Decision log saved: ${filename}`);
+
+      // ✅ NEW: Auto-save closed positions to separate file
+      await this.saveClosedPositionsFromDecision(record);
+
       return filepath;
     } catch (error) {
       console.error('❌ Failed to save decision log:', error);
       return null;
+    }
+  }
+
+  /**
+   * Extract and save closed positions from a decision record
+   * Called automatically by saveDecision()
+   */
+  private async saveClosedPositionsFromDecision(decision: DecisionRecord): Promise<void> {
+    try {
+      // Find all close actions in this decision
+      const closeActions = decision.decisions.filter(
+        d => d.action === 'close_long' || d.action === 'close_short'
+      );
+
+      if (closeActions.length === 0) {
+        return; // No positions closed
+      }
+
+      // Load recent decisions to find open times
+      const recentDecisions = await this.getRecentDecisions(200);
+      const sortedDecisions = [...recentDecisions].sort((a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      for (const closeAction of closeActions) {
+        const side = closeAction.action === 'close_long' ? 'long' : 'short';
+        const symbol = closeAction.symbol;
+
+        // Find position in snapshot
+        const position = decision.positions_snapshot.find(
+          p => p.symbol === symbol && p.side === side
+        );
+
+        if (!position) {
+          console.warn(`[DecisionLogger] Position not found for ${symbol} ${side}`);
+          continue;
+        }
+
+        // Find open time by looking backwards
+        let openTime: string | null = null;
+
+        for (let i = 0; i < sortedDecisions.length; i++) {
+          const d = sortedDecisions[i];
+
+          if (d.cycle_number >= decision.cycle_number) break;
+
+          const currentPos = d.positions_snapshot.find(
+            p => p.symbol === symbol && p.side === side
+          );
+
+          const prevPos = i > 0
+            ? sortedDecisions[i - 1].positions_snapshot.find(
+                p => p.symbol === symbol && p.side === side
+              )
+            : null;
+
+          // Position appeared for the first time
+          if (currentPos && !prevPos) {
+            openTime = d.timestamp;
+            break;
+          }
+        }
+
+        // Fallback: look for open action
+        if (!openTime) {
+          for (const d of sortedDecisions) {
+            if (d.cycle_number >= decision.cycle_number) break;
+
+            for (const action of d.decisions) {
+              const actionSide = action.action.includes('long') ? 'long' : action.action.includes('short') ? 'short' : null;
+              if ((action.action === 'open_long' || action.action === 'open_short') &&
+                  action.symbol === symbol && actionSide === side) {
+                openTime = d.timestamp;
+                break;
+              }
+            }
+            if (openTime) break;
+          }
+        }
+
+        if (!openTime) {
+          console.warn(`[DecisionLogger] Could not find open time for ${symbol} ${side}`);
+          continue;
+        }
+
+        // Save closed position
+        await this.saveClosedPosition(decision, closeAction, position, openTime);
+      }
+    } catch (error) {
+      console.error('Failed to save closed positions from decision:', error);
+      // Don't throw - this is non-critical
     }
   }
 
@@ -616,6 +714,162 @@ export class DecisionLogger {
     } catch (error) {
       console.error('Failed to initialize cycle number:', error);
       this.cycleNumber = 0;
+    }
+  }
+
+  // ========================================
+  // Closed Positions Management (for fast access)
+  // ========================================
+
+  /**
+   * Load closed positions from JSON file
+   */
+  private async loadClosedPositions(): Promise<ClosedPosition[]> {
+    try {
+      const content = await fs.readFile(this.closedPositionsFile, 'utf-8');
+      return JSON.parse(content) as ClosedPosition[];
+    } catch (error) {
+      // File doesn't exist or is empty, return empty array
+      return [];
+    }
+  }
+
+  /**
+   * Save closed positions to JSON file
+   */
+  private async saveClosedPositionsFile(positions: ClosedPosition[]): Promise<void> {
+    try {
+      await fs.writeFile(
+        this.closedPositionsFile,
+        JSON.stringify(positions, null, 2),
+        'utf-8'
+      );
+    } catch (error) {
+      console.error('Failed to save closed positions file:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Append a closed position record
+   * Called when a position is closed
+   */
+  async saveClosedPosition(
+    decision: DecisionRecord,
+    closeAction: Decision,
+    position: {
+      symbol: string;
+      side: string;
+      entry_price: number;
+      mark_price: number;
+      quantity: number;
+      leverage: number;
+      unrealized_pnl: number;
+      unrealized_pnl_pct: number;
+    },
+    openTime: string
+  ): Promise<void> {
+    try {
+      const positions = await this.loadClosedPositions();
+
+      // Generate auto-increment ID
+      const newId = positions.length > 0
+        ? Math.max(...positions.map(p => p.id)) + 1
+        : 1;
+
+      // Calculate holding time
+      const openTimestamp = new Date(openTime).getTime();
+      const closeTimestamp = new Date(decision.timestamp).getTime();
+      const holdingTimeMinutes = (closeTimestamp - openTimestamp) / (1000 * 60);
+
+      const closedPosition: ClosedPosition = {
+        id: newId,
+        trader_id: this.traderId,
+        cycle_number: decision.cycle_number,
+        timestamp: decision.timestamp,
+        symbol: position.symbol,
+        side: position.side as 'long' | 'short',
+        action: closeAction.action as 'close_long' | 'close_short',
+        open_time: openTime,
+        close_time: decision.timestamp,
+        entry_price: position.entry_price,
+        exit_price: position.mark_price,
+        quantity: position.quantity,
+        leverage: position.leverage,
+        pnl: position.unrealized_pnl,
+        pnl_pct: position.unrealized_pnl_pct,
+        holding_time_minutes: holdingTimeMinutes,
+        reasoning: closeAction.reasoning,
+      };
+
+      // Append to array (newest last)
+      positions.push(closedPosition);
+
+      // Save to file
+      await this.saveClosedPositionsFile(positions);
+
+      console.log(`💾 Saved closed position: ${position.symbol} ${position.side} (PnL: ${position.unrealized_pnl.toFixed(2)} USDT)`);
+    } catch (error) {
+      console.error('Failed to save closed position:', error);
+      // Don't throw - this is non-critical
+    }
+  }
+
+  /**
+   * Get closed positions with pagination
+   * @param page - Page number (1-indexed)
+   * @param limit - Items per page
+   * @returns Paginated closed positions (newest first)
+   */
+  async getClosedPositions(page: number = 1, limit: number = 20): Promise<{
+    data: ClosedPosition[];
+    pagination: {
+      page: number;
+      limit: number;
+      total_count: number;
+      total_pages: number;
+      has_next: boolean;
+      has_prev: boolean;
+    };
+  }> {
+    try {
+      const allPositions = await this.loadClosedPositions();
+
+      // Sort by timestamp (newest first)
+      const sorted = [...allPositions].sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+
+      const totalCount = sorted.length;
+      const totalPages = Math.ceil(totalCount / limit);
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedData = sorted.slice(startIndex, endIndex);
+
+      return {
+        data: paginatedData,
+        pagination: {
+          page,
+          limit,
+          total_count: totalCount,
+          total_pages: totalPages,
+          has_next: page < totalPages,
+          has_prev: page > 1,
+        },
+      };
+    } catch (error) {
+      console.error('Failed to get closed positions:', error);
+      return {
+        data: [],
+        pagination: {
+          page: 1,
+          limit,
+          total_count: 0,
+          total_pages: 0,
+          has_next: false,
+          has_prev: false,
+        },
+      };
     }
   }
 }

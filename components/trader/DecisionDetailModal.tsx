@@ -193,7 +193,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                     }`}
                   >
                     <span>⚙️</span>
-                    <span>系统</span>
+                    <span>{t.trader.systemPrompt}</span>
                   </button>
                 )}
                 {decision.input_prompt && (
@@ -206,7 +206,7 @@ export function DecisionDetailModal({ decision, onClose }: DecisionDetailModalPr
                     }`}
                   >
                     <span>📥</span>
-                    <span>用户</span>
+                    <span>{t.trader.userInput}</span>
                   </button>
                 )}
               </div>
