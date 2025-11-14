@@ -342,7 +342,7 @@ export const zhCN = {
   },
 
   footer: {
-    description: 'NofyAI - AI 驱动的算法交易操作系统',
+    description: 'AI 驱动的算法交易操作系统',
     riskWarning: '⚠️ AI 自动交易存在风险，请使用少量资金进行测试。',
   },
 };

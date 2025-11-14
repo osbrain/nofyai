@@ -22,6 +22,19 @@
 > **交易所支持**：目前仅支持 **Aster DEX** 作为交易执行平台
 > **市场数据源**：使用 **Binance API** 获取实时市场数据（K线、价格等）
 
+---
+
+## 🖼️ 效果展示
+
+### Web 界面截图
+
+<div align="center">
+  <img src="images/image.png" alt="NofyAI 交易系统界面" width="100%">
+  <p><em>实时监控多个 AI 交易员的表现，包括净值曲线、持仓信息和决策分析</em></p>
+</div>
+
+---
+
 ### ✨ 功能特性
 
 #### 🏆 多交易员竞赛模式
@@ -1018,15 +1031,26 @@ docker compose logs -f nofyai
 
 ## 🤝 贡献指南
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 Issue 和 Pull Request！我们期待你的贡献。
 
-### 开发流程
+### 快速开始贡献
 
 1. Fork 本仓库
 2. 创建特性分支（`git checkout -b feature/AmazingFeature`）
 3. 提交改动（`git commit -m 'feat: Add some AmazingFeature'`）
 4. 推送到分支（`git push origin feature/AmazingFeature`）
 5. 开启 Pull Request
+
+### 详细指南
+
+请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 获取完整的贡献指南，包括：
+
+- 🐛 如何报告 Bug
+- ✨ 如何提出新功能
+- 💻 开发流程和代码规范
+- 🔒 安全性最佳实践
+- 🧪 测试指南
+- 🛠️ 调试技巧
 
 ### 代码规范
 

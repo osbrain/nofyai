@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "NofyAI - AI-Powered Algorithmic Trading",
+  title: "AI-Powered Algorithmic Trading",
   description: "Universal AI-driven algorithmic trading operating system with multi-agent autonomous trading across cryptocurrency exchanges",
   keywords: ["AI trading", "algorithmic trading", "cryptocurrency", "DeepSeek", "Qwen", "automated trading"],
 };

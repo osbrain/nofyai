@@ -344,7 +344,7 @@ export const enUS: Locale = {
   },
 
   footer: {
-    description: 'NofyAI - AI-Powered Algorithmic Trading Operating System',
+    description: 'AI-Powered Algorithmic Trading Operating System',
     riskWarning: '⚠️ AI automated trading carries risk. Use small amounts for testing.',
   },
 };
