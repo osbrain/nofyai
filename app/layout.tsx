@@ -30,7 +30,7 @@ export default function RootLayout({
           <I18nProvider>
             <div className="min-h-screen bg-background-secondary flex flex-col">
               <Header />
-              <main className="flex-1">
+              <main className="flex-1 max-w-[1800px] mx-auto w-full">
                 {children}
               </main>
               <Footer />
