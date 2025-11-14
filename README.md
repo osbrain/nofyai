@@ -395,37 +395,65 @@ chmod +x fix-permissions.sh
 
 **重要**：NofyAI 采用进程内架构，交易引擎直接运行在 Next.js 应用内部，无需独立的后端服务。
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Next.js 应用                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │           前端 UI（React 19）                     │   │
-│  │  • 竞赛排行榜  • 交易员详情  • 决策日志          │   │
-│  └─────────────────┬────────────────────────────────┘   │
-│                    │ SWR 数据获取（自动刷新）            │
-│  ┌─────────────────▼────────────────────────────────┐   │
-│  │        Next.js API Routes（/app/api）            │   │
-│  │      直接调用 TraderManager（非 HTTP 代理）       │   │
-│  └─────────────────┬────────────────────────────────┘   │
-│                    │                                     │
-│  ┌─────────────────▼────────────────────────────────┐   │
-│  │          TraderManager（全局单例）                │   │
-│  │     管理多个独立的 TradingEngine 实例             │   │
-│  └─────────────────┬────────────────────────────────┘   │
-│                    │                                     │
-│  ┌─────────────────▼────────────────────────────────┐   │
-│  │         TradingEngine（每个 Trader）             │   │
-│  │  • AI 决策  • 交易执行  • 决策日志               │   │
-│  └─────┬──────────────────────────┬─────────────────┘   │
-│        │                          │                      │
-└────────┼──────────────────────────┼──────────────────────┘
-         │                          │
-    ┌────▼────┐              ┌─────▼──────┐
-    │ AI APIs │              │ 交易所 API  │
-    │ DeepSeek│              │ Aster DEX   │
-    │ Qwen    │              │             │
-    │ Kimi    │              │             │
-    └─────────┘              └─────────────┘
+```mermaid
+graph TB
+    subgraph NextJS["Next.js 应用（单一进程）"]
+        subgraph Frontend["前端层"]
+            UI["前端 UI (React 19)<br/>• 竞赛排行榜<br/>• 交易员详情<br/>• 决策日志"]
+        end
+
+        subgraph APILayer["API 层"]
+            API["Next.js API Routes<br/>/app/api/*<br/><small>直接调用 TraderManager</small>"]
+        end
+
+        subgraph CoreLogic["核心业务逻辑层"]
+            TM["TraderManager<br/><small>全局单例</small><br/>管理多个 TradingEngine"]
+            TE1["TradingEngine #1<br/>• AI 决策<br/>• 交易执行<br/>• 决策日志"]
+            TE2["TradingEngine #2<br/>• AI 决策<br/>• 交易执行<br/>• 决策日志"]
+            TE3["TradingEngine #N<br/>• AI 决策<br/>• 交易执行<br/>• 决策日志"]
+        end
+    end
+
+    subgraph External["外部服务"]
+        subgraph AIServices["AI 服务"]
+            DeepSeek["DeepSeek API"]
+            Qwen["Qwen API"]
+            Kimi["Kimi API"]
+            Custom["自定义 API"]
+        end
+
+        subgraph DataSources["数据与交易"]
+            Binance["Binance API<br/><small>市场数据源</small><br/>K线、价格、成交量"]
+            Aster["Aster DEX API<br/><small>交易执行</small><br/>开仓、平仓、查询持仓"]
+        end
+    end
+
+    UI -->|"SWR 自动刷新"| API
+    API -->|"直接方法调用"| TM
+    TM -->|"管理"| TE1
+    TM -->|"管理"| TE2
+    TM -->|"管理"| TE3
+
+    TE1 -->|"AI 决策"| AIServices
+    TE2 -->|"AI 决策"| AIServices
+    TE3 -->|"AI 决策"| AIServices
+
+    TE1 -->|"获取市场数据"| Binance
+    TE2 -->|"获取市场数据"| Binance
+    TE3 -->|"获取市场数据"| Binance
+
+    TE1 -->|"执行交易"| Aster
+    TE2 -->|"执行交易"| Aster
+    TE3 -->|"执行交易"| Aster
+
+    style NextJS fill:#f0f7ff,stroke:#1e40af,stroke-width:3px
+    style Frontend fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style APILayer fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style CoreLogic fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+    style External fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style AIServices fill:#dcfce7,stroke:#22c55e,stroke-width:1px
+    style DataSources fill:#dcfce7,stroke:#22c55e,stroke-width:1px
+    style TM fill:#fef3c7,stroke:#f59e0b,stroke-width:2px
 ```
 
 ### 关键设计特点
