@@ -8,6 +8,7 @@ import { useTranslations } from '@/lib/i18n-context';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { MaskedTraderConfig } from '@/types';
+import PriceTickerBoard from '@/components/market/PriceTickerBoard';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -51,35 +52,42 @@ export default function HomePage() {
     <div className="w-full px-4 md:px-6 py-4 md:py-8">
       {hasTraders ? (
         <>
-          {/* Trader Tabs - Only show if multiple traders */}
-          {!hasSingleTrader && (
-            <div className="mb-4 md:mb-6">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {traders.map((trader) => (
-                  <button
-                    key={trader.id}
-                    onClick={() => setSelectedTraderId(trader.id)}
-                    className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold text-xs md:text-sm whitespace-nowrap transition-all ${
-                      selectedTraderId === trader.id
-                        ? 'bg-gradient-to-r from-primary to-accent-purple text-white shadow-lg'
-                        : 'bg-white text-text-secondary hover:bg-background-secondary border border-border'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                      <span className="text-sm md:text-base">🤖</span>
-                      <span className="hidden sm:inline">{trader.name}</span>
-                      <span className="sm:hidden">{trader.id}</span>
-                      {trader.enabled && (
-                        <Badge variant="success" className="ml-1 text-[10px] md:text-xs">
-                          {t.config.enabled}
-                        </Badge>
-                      )}
-                    </div>
-                  </button>
-                ))}
+          {/* Top row: Trader tabs (left) + Price ticker (right) */}
+          <div className="mb-4 md:mb-6">
+            <div className="flex items-center justify-between gap-4">
+              {!hasSingleTrader ? (
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {traders.map((trader) => (
+                    <button
+                      key={trader.id}
+                      onClick={() => setSelectedTraderId(trader.id)}
+                      className={`px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold text-xs md:text-sm whitespace-nowrap transition-all ${
+                        selectedTraderId === trader.id
+                          ? 'bg-gradient-to-r from-primary to-accent-purple text-white shadow-lg'
+                          : 'bg-white text-text-secondary hover:bg-background-secondary border border-border'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 md:gap-2">
+                        <span className="text-sm md:text-base">🤖</span>
+                        <span className="hidden sm:inline">{trader.name}</span>
+                        <span className="sm:hidden">{trader.id}</span>
+                        {trader.enabled && (
+                          <Badge variant="success" className="ml-1 text-[10px] md:text-xs">
+                            {t.config.enabled}
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div />
+              )}
+              <div className="ml-auto max-w-full">
+                <PriceTickerBoard symbols={(config as any)?.default_coins || []} />
               </div>
             </div>
-          )}
+          </div>
 
           {/* Trader Detail View */}
           {selectedTraderId && currentTrader && (
