@@ -23,9 +23,11 @@ export function Header() {
         <div className="flex items-center justify-between h-14 md:h-16">
           {/* Logo */}
           <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br from-primary to-accent-purple flex items-center justify-center text-xl md:text-2xl shadow-lg">
-              ⚡
-            </div>
+            <img
+              src="/icons/icon.png"
+              alt="Site logo"
+              className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl shadow-lg object-cover"
+            />
             <div>
               <h1 className="text-base md:text-xl font-bold text-primary">
                 NofyAI
