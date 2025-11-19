@@ -54,7 +54,7 @@ export default function HomePage() {
         <>
           {/* Top row: Trader tabs (left) + Price ticker (right) */}
           <div className="mb-4 md:mb-6">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
               {!hasSingleTrader ? (
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {traders.map((trader) => (
@@ -83,7 +83,7 @@ export default function HomePage() {
               ) : (
                 <div />
               )}
-              <div className="ml-auto max-w-full">
+              <div className="w-full md:w-auto md:ml-auto md:max-w-full">
                 <PriceTickerBoard symbols={(config as any)?.default_coins || []} />
               </div>
             </div>

@@ -166,9 +166,14 @@ export const enUS: Locale = {
     allDecisionsLoaded: 'All decisions loaded',
 
     // Trades
+    tradingHistory: 'Trading History',
     noTradesYet: 'No Trades Yet',
     tradesWillAppear: 'Trading actions will appear here',
     allTradesLoaded: 'All trades loaded',
+    holdingTime: 'Holding Time',
+    opened: 'Opened',
+    closed: 'Closed',
+    aiReasoning: 'AI Reasoning',
 
     // Chart
     equityPerformance: 'Equity Performance',

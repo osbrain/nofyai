@@ -164,9 +164,14 @@ export const zhCN = {
     allDecisionsLoaded: '已加载全部决策',
 
     // Trades
+    tradingHistory: '交易历史',
     noTradesYet: '暂无交易',
     tradesWillAppear: '交易操作将在此处显示',
     allTradesLoaded: '已加载全部交易',
+    holdingTime: '持仓时长',
+    opened: '开仓',
+    closed: '平仓',
+    aiReasoning: 'AI 决策理由',
 
     // Chart
     equityPerformance: '权益表现',

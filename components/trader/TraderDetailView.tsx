@@ -314,7 +314,6 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
               <TabsList className="w-full text-xs md:text-sm">
                 <TabsTrigger value="performance" className="flex-1">{t.trader.performance}</TabsTrigger>
                 <TabsTrigger value="decisions" className="flex-1">{t.trader.decisions}</TabsTrigger>
-                <TabsTrigger value="trades" className="flex-1">{t.trader.trades}</TabsTrigger>
               </TabsList>
 
               {/* Performance Tab */}
@@ -410,143 +409,6 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
                     <div className="text-3xl md:text-4xl mb-2">🧠</div>
                     <div className="font-semibold mb-1 text-xs md:text-sm">{t.trader.noDecisionsYet}</div>
                     <div className="text-[10px] md:text-xs">{t.trader.decisionsWillAppear}</div>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Trades Tab */}
-              <TabsContent value="trades" className="p-2 md:p-4">
-                {closedTrades && closedTrades.length > 0 ? (
-                  <>
-                    {/* Pagination info */}
-                    {tradesPagination && (
-                      <div className="mb-3 flex items-center justify-between text-[10px] md:text-xs text-text-secondary">
-                        <span>
-                          {t.trader.showingDecisions || '显示'} {closedTrades.length} / {tradesPagination.total_count} {t.trader.tradesCount}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                      {closedTrades.map((trade) => {
-                        const actionLabel = trade.action === 'close_long' ? t.trader.closeLong : t.trader.closeShort;
-                        const actionType: 'buy' | 'sell' = trade.action === 'close_short' ? 'buy' : 'sell';
-
-                        return (
-                          <div
-                            key={trade.id}
-                            className="p-3 bg-background-secondary rounded-lg border border-border hover:border-primary/30 transition-all"
-                          >
-                            {/* Header Row */}
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                {/* Action Icon */}
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-base font-bold ${
-                                  actionType === 'buy'
-                                    ? 'bg-success/10 text-success'
-                                    : 'bg-danger/10 text-danger'
-                                }`}>
-                                  {actionType === 'buy' ? '↗' : '↘'}
-                                </div>
-
-                                {/* Symbol and Action */}
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-bold text-text-primary">
-                                      {trade.symbol}
-                                    </span>
-                                    <Badge variant={actionType === 'buy' ? 'success' : 'danger'} className="text-[9px] md:text-[10px]">
-                                      {actionLabel}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-xs text-text-secondary mt-0.5">
-                                    <span>{t.trader.cycle} #{trade.cycle_number}</span>
-                                    <span>•</span>
-                                    <span>{new Date(trade.close_time).toLocaleString()}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* PnL on the right */}
-                              <div className="text-right">
-                                <div className={`text-sm md:text-base font-bold ${trade.pnl >= 0 ? 'text-success' : 'text-danger'}`}>
-                                  {trade.pnl >= 0 ? '+' : ''}{formatUSD(trade.pnl)}
-                                </div>
-                                <div className="text-xs text-text-tertiary">
-                                  {formatPercent(trade.pnl_pct)}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Position Details */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 pt-3 border-t border-border">
-                              <div>
-                                <div className="text-[10px] text-text-tertiary">{t.trader.entryPrice}</div>
-                                <div className="text-xs font-semibold text-text-primary font-mono">
-                                  {formatUSD(trade.entry_price)}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-text-tertiary">{t.trader.exitPrice}</div>
-                                <div className="text-xs font-semibold text-text-primary font-mono">
-                                  {formatUSD(trade.exit_price)}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-text-tertiary">{t.trader.quantity}</div>
-                                <div className="text-xs font-semibold text-text-primary">
-                                  {trade.quantity.toFixed(4)}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-[10px] text-text-tertiary">{t.trader.lev}</div>
-                                <div className="text-xs font-semibold text-primary">
-                                  {trade.leverage}x
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Load More Button */}
-                      {tradesHasMore && (
-                        <div className="mt-3 flex justify-center">
-                          <button
-                            onClick={tradesLoadMore}
-                            disabled={tradesLoadingMore}
-                            className="px-4 md:px-6 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors font-semibold text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {tradesLoadingMore ? (
-                              <span className="flex items-center gap-2">
-                                <span className="inline-block w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
-                                {t.trader.loading || '加载中...'}
-                              </span>
-                            ) : (
-                              <span>{t.trader.loadMore || '加载更多'}</span>
-                            )}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* End of list indicator */}
-                      {!tradesHasMore && closedTrades.length > 20 && (
-                        <div className="mt-3 text-center text-xs text-text-tertiary">
-                          {t.trader.allTradesLoaded}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : tradesLoading ? (
-                  <div className="text-center py-8 md:py-12 text-text-tertiary">
-                    <div className="text-3xl md:text-4xl mb-2">⏳</div>
-                    <div className="text-xs md:text-sm">{t.trader.loading || '加载中...'}</div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 md:py-12 text-text-tertiary">
-                    <div className="text-3xl md:text-4xl mb-2">📊</div>
-                    <div className="font-semibold mb-1 text-xs md:text-sm">{t.trader.noTradesYet}</div>
-                    <div className="text-[10px] md:text-xs">{t.trader.tradesWillAppear}</div>
                   </div>
                 )}
               </TabsContent>
@@ -688,6 +550,190 @@ export function TraderDetailView({ traderId, showHeader = false }: TraderDetailV
             )}
           </Card>
         </div>
+      </div>
+
+      {/* Trading History Section */}
+      <div className="w-full py-4 md:py-6">
+        <Card className="p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-bold text-text-primary mb-4 md:mb-6">{t.trader.tradingHistory}</h3>
+
+          {closedTrades && closedTrades.length > 0 ? (
+            <>
+              {/* Pagination info */}
+              {tradesPagination && (
+                <div className="mb-4 flex items-center justify-between text-xs md:text-sm text-text-secondary">
+                  <span>
+                    {t.trader.showingDecisions || '显示'} {closedTrades.length} / {tradesPagination.total_count} {t.trader.tradesCount}
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {closedTrades.map((trade) => {
+                  const actionLabel = trade.action === 'close_long' ? t.trader.closeLong : t.trader.closeShort;
+                  const actionType: 'buy' | 'sell' = trade.action === 'close_short' ? 'buy' : 'sell';
+                  const isProfitable = trade.pnl >= 0;
+
+                  // Format holding time
+                  const formatHoldingTime = (minutes: number) => {
+                    if (minutes < 60) {
+                      return `${Math.round(minutes)}m`;
+                    } else if (minutes < 1440) {
+                      const hours = Math.floor(minutes / 60);
+                      const mins = Math.round(minutes % 60);
+                      return `${hours}h ${mins}m`;
+                    } else {
+                      const days = Math.floor(minutes / 1440);
+                      const hours = Math.floor((minutes % 1440) / 60);
+                      return `${days}d ${hours}h`;
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={trade.id}
+                      className={`relative p-3 md:p-4 bg-gradient-to-br rounded-lg border transition-all duration-200 hover:shadow-md ${
+                        isProfitable
+                          ? 'from-success/5 to-background-secondary border-success/20 hover:border-success/40'
+                          : 'from-danger/5 to-background-secondary border-danger/20 hover:border-danger/40'
+                      }`}
+                    >
+                      {/* Header Row - Symbol, Side, and PnL */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {/* Side Indicator */}
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base font-bold ${
+                            trade.side === 'long'
+                              ? 'bg-gradient-to-br from-success/20 to-success/10 text-success'
+                              : 'bg-gradient-to-br from-danger/20 to-danger/10 text-danger'
+                          }`}>
+                            {trade.side === 'long' ? '📈' : '📉'}
+                          </div>
+
+                          {/* Symbol and Action */}
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-base md:text-lg font-bold text-text-primary">
+                                {trade.symbol}
+                              </span>
+                              <Badge
+                                variant={trade.side === 'long' ? 'success' : 'danger'}
+                                className="text-[10px] font-semibold px-1.5 py-0"
+                              >
+                                {trade.side.toUpperCase()}
+                              </Badge>
+                              <span className="text-[10px] text-text-tertiary">#{trade.cycle_number}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-text-secondary mt-0.5">
+                              <span>⏱️ {formatHoldingTime(trade.holding_time_minutes)}</span>
+                              <span>•</span>
+                              <span>{new Date(trade.close_time).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* PnL Badge - Compact */}
+                        <div className={`text-right px-2.5 py-1.5 rounded-md ${
+                          isProfitable ? 'bg-success/10' : 'bg-danger/10'
+                        }`}>
+                          <div className={`text-base md:text-lg font-bold ${isProfitable ? 'text-success' : 'text-danger'}`}>
+                            {isProfitable ? '+' : ''}{formatUSD(trade.pnl)}
+                          </div>
+                          <div className={`text-xs font-semibold ${isProfitable ? 'text-success' : 'text-danger'}`}>
+                            {formatPercent(trade.pnl_pct)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Trading Details Grid - Compact */}
+                      <div className="grid grid-cols-4 gap-2 mb-2">
+                        <div className="bg-background-primary/50 rounded p-2">
+                          <div className="text-[9px] text-text-tertiary mb-0.5">{t.trader.entryPrice}</div>
+                          <div className="text-xs md:text-sm font-bold text-text-primary font-mono">
+                            {formatUSD(trade.entry_price)}
+                          </div>
+                        </div>
+                        <div className="bg-background-primary/50 rounded p-2">
+                          <div className="text-[9px] text-text-tertiary mb-0.5">{t.trader.exitPrice}</div>
+                          <div className="text-xs md:text-sm font-bold text-text-primary font-mono">
+                            {formatUSD(trade.exit_price)}
+                          </div>
+                        </div>
+                        <div className="bg-background-primary/50 rounded p-2">
+                          <div className="text-[9px] text-text-tertiary mb-0.5">{t.trader.quantity}</div>
+                          <div className="text-xs md:text-sm font-bold text-text-primary">
+                            {trade.quantity.toFixed(4)}
+                          </div>
+                        </div>
+                        <div className="bg-background-primary/50 rounded p-2">
+                          <div className="text-[9px] text-text-tertiary mb-0.5">{t.trader.lev}</div>
+                          <div className="text-xs md:text-sm font-bold text-primary">
+                            {trade.leverage}x
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* AI Reasoning - Compact */}
+                      {trade.reasoning && (
+                        <div className="bg-primary/5 border-l-2 border-primary rounded-r p-2">
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-sm mt-0.5">🤖</span>
+                            <div className="flex-1">
+                              <div className="text-[10px] font-bold text-primary mb-0.5 uppercase tracking-wide">
+                                {t.trader.aiReasoning}
+                              </div>
+                              <div className="text-xs text-text-primary leading-snug">
+                                {trade.reasoning}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Load More Button */}
+                {tradesHasMore && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={tradesLoadMore}
+                      disabled={tradesLoadingMore}
+                      className="px-6 md:px-8 py-3 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors font-semibold text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {tradesLoadingMore ? (
+                        <span className="flex items-center gap-2">
+                          <span className="inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                          {t.trader.loading || '加载中...'}
+                        </span>
+                      ) : (
+                        <span>{t.trader.loadMore || '加载更多'}</span>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* End of list indicator */}
+                {!tradesHasMore && closedTrades.length > 20 && (
+                  <div className="mt-6 text-center text-sm text-text-tertiary">
+                    {t.trader.allTradesLoaded}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : tradesLoading ? (
+            <div className="text-center py-12 md:py-16 text-text-tertiary">
+              <div className="text-4xl md:text-5xl mb-3">⏳</div>
+              <div className="text-sm md:text-base">{t.trader.loading || '加载中...'}</div>
+            </div>
+          ) : (
+            <div className="text-center py-12 md:py-16 text-text-tertiary">
+              <div className="text-4xl md:text-5xl mb-3">📊</div>
+              <div className="font-semibold mb-2 text-sm md:text-base">{t.trader.noTradesYet}</div>
+              <div className="text-xs md:text-sm">{t.trader.tradesWillAppear}</div>
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Decision Detail Modal */}
